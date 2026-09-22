@@ -120,20 +120,20 @@ async def export_conversation(cid: uuid.UUID, v: Viewer = Depends(viewer)):
 
 
 async def make_title(cid: uuid.UUID, prompt: str, reply: str) -> None:
+    """Name the conversation with the cheapest configured model; fall back to the prompt's first words."""
+    title = ""
     provider = next((p for p in providers.CHEAP if p in providers.configured()), None)
-    if not provider:
-        return
-    text = f"User: {prompt[:800]}\nAssistant: {reply[:800]}"
-    parts = []
-    try:
-        with steno.session(str(cid)):
-            async for delta in providers.stream(provider, providers.CHEAP[provider], [{"role": "user", "content": f"{TITLE_PROMPT}\n\n{text}"}]):
-                parts.append(delta)
-        title = "".join(parts).strip().strip('"').splitlines()[0][:80]
-        if title:
-            await q("update conversations set title=%s where id=%s and title is null", title, cid)
-    except Exception:
-        pass  # the fallback title set on the first message stands
+    if provider:
+        text = f"User: {prompt[:800]}\nAssistant: {reply[:800]}"
+        parts = []
+        try:
+            with steno.session(str(cid)):
+                async for delta in providers.stream(provider, providers.CHEAP[provider], [{"role": "user", "content": f"{TITLE_PROMPT}\n\n{text}"}]):
+                    parts.append(delta)
+            title = "".join(parts).strip().strip('"').splitlines()[0][:80]
+        except Exception:
+            title = ""
+    await q("update conversations set title=%s where id=%s and title is null", title or prompt.strip()[:60], cid)
 
 
 @app.post("/api/conversations/{cid}/messages")
