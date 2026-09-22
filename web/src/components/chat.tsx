@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Markdown } from "@/components/markdown"
 import { MessageActions } from "@/components/message-actions"
 import { Welcome } from "@/components/welcome"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
 import { Message, MessageContent, MessageFooter } from "@/components/ui/message"
@@ -94,7 +95,13 @@ export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend
                     ) : (
                       <Message align="start">
                         <MessageContent className="w-full">
-                          <Bubble variant="ghost" className="max-w-full">
+                          {m.error && (
+                            <Alert variant="destructive" className="mb-2">
+                              <AlertTitle>The model did not answer</AlertTitle>
+                              <AlertDescription className="break-words">{m.error}</AlertDescription>
+                            </Alert>
+                          )}
+                          <Bubble variant="ghost" className={cn("max-w-full", m.error && m.content === "" && "hidden")}>
                             <BubbleContent className="w-full">
                               {live && m.content === "" ? (
                                 <span role="status" className="flex items-center gap-2 text-muted-foreground">

@@ -6,6 +6,7 @@ export type Message = {
   model?: string | null
   ttftMs?: number
   totalMs?: number
+  error?: string
 }
 export type Models = Record<string, string[]>
 export type SendBody = { content: string; provider: string; model: string | null }

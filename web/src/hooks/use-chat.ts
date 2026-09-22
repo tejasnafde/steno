@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { api, textChunks, type Conversation, type Message, type Models } from "@/lib/api"
 
 const PARAM = "c"
+const ERROR_MARK = "[error]"
 const TITLE_SETTLE_MS = 3000 // the server names a conversation a moment after the first reply
 
 function urlConversation() {
@@ -144,6 +145,7 @@ export function useChat(refreshKey: unknown) {
     setStreaming(true)
     controller.current = new AbortController()
     const started = performance.now()
+    let failed = false
     try {
       const response = await api.send(id, { content, provider, model: model || null }, controller.current.signal)
       patch(reply.id, { model: response.headers.get("X-Model") })
@@ -151,14 +153,26 @@ export function useChat(refreshKey: unknown) {
         patch(reply.id, (m) => ({ content: m.content + chunk, ttftMs: m.ttftMs ?? performance.now() - started }))
       }
     } catch (error) {
-      const note = (error as Error).name === "AbortError" ? "" : `\n\n[error] ${(error as Error).message}`
-      patch(reply.id, (m) => ({ content: m.content + note }))
+      if ((error as Error).name !== "AbortError") {
+        failed = true
+        patch(reply.id, { error: (error as Error).message })
+      }
     } finally {
-      patch(reply.id, { totalMs: performance.now() - started })
+      // The server streams provider failures inline as a trailing "[error] ..." line; lift it into its own field.
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== reply.id) return m
+          const at = m.content.indexOf(ERROR_MARK)
+          if (at < 0) return { ...m, totalMs: performance.now() - started }
+          failed = true
+          return { ...m, content: m.content.slice(0, at), error: m.content.slice(at + ERROR_MARK.length).trim(), totalMs: performance.now() - started }
+        }),
+      )
       setStreaming(false)
       controller.current = null
-      // Client ids are provisional; reload so fork and copy work on real message ids.
-      api.messages(id).then(setMessages)
+      // Client ids are provisional; reload so fork and copy work on real ids. A failed reply is not stored
+      // server-side, so keep the local state that shows the error instead of wiping it.
+      if (!failed) api.messages(id).then(setMessages)
       refreshConversations()
       setTimeout(refreshConversations, TITLE_SETTLE_MS)
     }
