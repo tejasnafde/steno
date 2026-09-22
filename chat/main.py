@@ -18,7 +18,7 @@ from .db import pool, q
 
 steno.instrument()
 CONTEXT_MESSAGES = 20  # fixed window; add summarisation when context cost matters
-IMAGE_MARKDOWN = re.compile(r"!\[[^\]]*\]\(data:[^)]+\)")  # inline images are kept in messages but not fed back as context
+IMAGE_MARKDOWN = re.compile(r"!\[[^\]]*\]\([^)]+\)")  # images stay in messages but are not fed back as context
 TITLE_PROMPT = "Write a title of at most five words for this conversation. Reply with the title only, no quotes."
 
 

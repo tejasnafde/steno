@@ -5,7 +5,7 @@ Small codebase, keep it that way. Read this before editing.
 ## Layout
 
 - `steno/` is the SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK moved to that fork; patching one misses the other). `session(id)` tags calls through a ContextVar. Events queue in memory and flush in batches to `STENO_ENDPOINT`.
-- `chat/` is the chatbot API: FastAPI routes in `main.py`, one async generator per provider in `providers.py`, identity and the session cookie in `auth.py`, the admin allowlist and the forward_auth check in `admin.py`, and the connection pool in `db.py`. It owns `users`, `admin_allowlist`, `conversations`, and `messages`. It serves `chat/static` when present; the Dockerfile builds `web/` into it.
+- `chat/` is the chatbot API: FastAPI routes in `main.py`, one async generator per provider in `providers.py`, identity and the session cookie in `auth.py`, the admin allowlist and the forward_auth check in `admin.py`, the connection pool in `db.py`, quotas in `quota.py`, and generated-image storage in `images.py` (GCS when `IMAGE_BUCKET` is set, data URI otherwise). It owns `users`, `admin_allowlist`, `conversations`, and `messages`. It serves `chat/static` when present; the Dockerfile builds `web/` into it.
 - `web/` is the React UI: Vite, TypeScript, Tailwind v4, shadcn (base-nova preset, so use `render`, not `asChild`). Structure: `src/lib/api.ts` (fetch layer and types), `src/hooks/use-chat.ts` (conversation and streaming state), `src/hooks/use-auth.ts` (sign-in state), `src/components/*.tsx` (one component per file, including `message-actions.tsx` for copy and branch), `src/components/ui` (shadcn, do not hand-edit). Dev: `npm run dev` in `web/` proxies `/api` to :8000.
 - `ingest/main.py` validates batches and appends to a Redis stream. `ingest/worker.py` consumes with a consumer group and inserts into `inference_logs`.
 - `db/schema.sql` is the only schema definition. Postgres loads it on first start. Schema decisions live in its comments.
@@ -47,6 +47,7 @@ A schema change needs `docker compose down -v` on the VM first; there are no mig
 - Gemini reports cumulative `usageMetadata` on every chunk; the parser keeps the last one.
 - Retry and edit are one operation: `POST .../truncate {after}` drops later messages, then the client sends again.
 - Share links: `share_token` on the conversation; `/s/<token>` and `/api/shared/<token>` are public, `DELETE .../share` revokes.
+- Image models (Gemini `nano-banana`, anything with `image` in the id) return `inline_data` parts; `providers.google` uploads them through `images.store` and yields a Markdown image. `IMAGE_MARKDOWN` strips any image from history before it goes back to a model.
 - The worker starts reading at `"0"` to replay its own pending entries, then switches to `">"`.
 - The `session` cookie is `uid|email|issued_at` plus a `.`-separated HMAC-SHA256 signature over that payload with `SESSION_SECRET`. `verify()` checks the signature, then checks the 30-day window against `issued_at`; there is no separate expiry field.
 - Caddy's `forward_auth` calls `GET /api/admin/check` before proxying `/admin*`. Anonymous gets a 302 to `/?signin=1&next=<uri>` so the SPA can open sign-in and return; signed in but not on `admin_allowlist` gets 403; allowlisted gets 200 and Caddy proxies through.

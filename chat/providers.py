@@ -40,11 +40,14 @@ async def google(model, messages, key=None):
         for part in ((chunk.candidates or [{}])[0].content.parts if chunk.candidates and chunk.candidates[0].content else []) or []:
             if part.text:
                 yield part.text
-            elif part.inline_data and part.inline_data.data:  # image models answer with bytes; ship them as a data URI the UI can render
-                import base64
+            elif part.inline_data and part.inline_data.data:  # image models answer with bytes
+                from . import images
                 data = part.inline_data.data
-                b64 = data.decode() if isinstance(data, bytes) and data[:4] in (b"iVBO", b"/9j/") else base64.b64encode(data).decode()
-                yield f"\n\n![generated image](data:{part.inline_data.mime_type};base64,{b64})\n\n"
+                if isinstance(data, str):
+                    import base64
+                    data = base64.b64decode(data)
+                url = await images.store(part.inline_data.mime_type or "image/png", data)
+                yield f"\n\n![generated image]({url})\n\n"
 
 
 async def anthropic(model, messages, key=None):

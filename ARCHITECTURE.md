@@ -93,6 +93,16 @@ and a visitor's own API key is the second: those requests skip the daily caps.
 Every rejection is a row in `quota_hits`, so abuse is visible on the dashboard's
 Usage row, not just refused.
 
+### Generated images
+
+Image models answer with bytes. In production `chat/images.py` uploads them to
+the public-read bucket `steno-images` under a random UUID name with a 30-day
+lifecycle, and the message stores a Markdown image pointing at the URL; the
+bucket is on the free tier and the URL is as guessable as a share link. Locally,
+with no bucket configured, the image is inlined as a data URI so the flow still
+works. Either way images are stripped to `[image]` before history goes back to
+a model, so a picture never costs tokens on later turns.
+
 ## Cancellation
 
 Two paths, both must emit a log row or Grafana under-counts cancellations.
