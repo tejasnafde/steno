@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 
+import { Button } from "@/components/ui/button"
 import {
   Combobox,
   ComboboxContent,
@@ -7,11 +8,13 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
 } from "@/components/ui/combobox"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Models } from "@/lib/api"
 
-type Props = {
+export type ModelPickerProps = {
   models: Models
   provider: string
   model: string
@@ -21,17 +24,19 @@ type Props = {
 
 const LABELS: Record<string, string> = { google: "Gemini", groq: "Groq", openai: "OpenAI", anthropic: "Anthropic" }
 
-export function ModelPicker({ models, provider, model, onProvider, onModel }: Props) {
+export function ModelPicker({ models, provider, model, onProvider, onModel }: ModelPickerProps) {
   const [query, setQuery] = useState("")
-  const known = models[provider] ?? []
   // A typed id that matches nothing becomes its own option, so any model id can be used.
-  const items = useMemo(() => (query && !known.includes(query) ? [query, ...known] : known), [known, query])
+  const items = useMemo(() => {
+    const known = models[provider] ?? []
+    return query && !known.includes(query) ? [query, ...known] : known
+  }, [models, provider, query])
   const providers = Object.keys(models).map((p) => ({ value: p, label: LABELS[p] ?? p }))
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-1">
       <Select items={providers} value={provider} onValueChange={(v) => v && onProvider(v)}>
-        <SelectTrigger className="w-28" aria-label="Provider">
+        <SelectTrigger size="sm" aria-label="Provider" className="w-28">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -45,8 +50,13 @@ export function ModelPicker({ models, provider, model, onProvider, onModel }: Pr
         </SelectContent>
       </Select>
       <Combobox items={items} value={model} onValueChange={(v) => onModel(v ?? "")} onInputValueChange={setQuery}>
-        <ComboboxInput placeholder="Model" aria-label="Model" className="w-72 **:data-[slot=input-group-control]:font-mono **:data-[slot=input-group-control]:text-xs" />
-        <ComboboxContent>
+        <ComboboxTrigger render={<Button variant="ghost" size="sm" aria-label="Model" className="min-w-0 max-w-64 font-mono text-xs" />}>
+          <span className="truncate">
+            <ComboboxValue />
+          </span>
+        </ComboboxTrigger>
+        <ComboboxContent className="w-80" align="start">
+          <ComboboxInput showTrigger={false} placeholder="Search, or type any model id" className="font-mono text-xs" />
           <ComboboxEmpty>Type a model id</ComboboxEmpty>
           <ComboboxList>
             {(item: string) => (

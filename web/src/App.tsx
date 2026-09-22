@@ -1,8 +1,10 @@
+import { useEffect } from "react"
+
 import { AccessPage } from "@/components/access-page"
 import { Chat } from "@/components/chat"
 import { Composer } from "@/components/composer"
 import { ConversationList } from "@/components/conversation-list"
-import { SiteHeader } from "@/components/site-header"
+import { APP_NAME, SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useChat } from "@/hooks/use-chat"
 
@@ -13,6 +15,13 @@ export function App() {
 
 function ChatApp() {
   const chat = useChat()
+  const title = chat.conversations.find((c) => c.id === chat.currentId)?.title ?? null
+
+  useEffect(() => {
+    document.title = title ? `${title} · ${APP_NAME}` : APP_NAME
+  }, [title])
+
+  const picker = { models: chat.models, provider: chat.provider, model: chat.model, onProvider: chat.selectProvider, onModel: chat.setModel }
 
   return (
     <SidebarProvider>
@@ -24,16 +33,10 @@ function ChatApp() {
         onDelete={chat.remove}
       />
       <SidebarInset className="h-svh">
-        <SiteHeader
-          models={chat.models}
-          provider={chat.provider}
-          model={chat.model}
-          onProvider={chat.selectProvider}
-          onModel={chat.setModel}
-        />
-        <Chat messages={chat.messages} streaming={chat.streaming} />
+        <SiteHeader title={title} streaming={chat.streaming} />
+        <Chat messages={chat.messages} streaming={chat.streaming} models={chat.models} onPrompt={chat.send} />
         <div className="px-4 pb-4 pt-2">
-          <Composer streaming={chat.streaming} onSend={chat.send} onStop={chat.stop} />
+          <Composer {...picker} streaming={chat.streaming} onSend={chat.send} onStop={chat.stop} />
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -2,7 +2,7 @@
 # Ship the working tree to the VM and rebuild. Needs .env.prod locally (provider keys, TUNNEL_TOKEN, PUBLIC_HOST).
 set -e
 GC=${GC:-/opt/homebrew/share/google-cloud-sdk/bin/gcloud}
-VM=${VM:-llmlog}
+VM=${VM:-steno}
 ZONE=${ZONE:-us-central1-a}
 ssh() { $GC --configuration=personal compute ssh "$VM" --project teejayproject --zone "$ZONE" --quiet -- "$@"; }
 cd "$(dirname "$0")/.."

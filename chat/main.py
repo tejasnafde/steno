@@ -10,10 +10,10 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-import llmlog
+import steno
 from . import access, providers
 
-llmlog.instrument()
+steno.instrument()
 CONTEXT_MESSAGES = 20  # fixed window; add summarisation when context cost matters
 COOKIE = "uid"
 pool = AsyncConnectionPool(os.environ["DATABASE_URL"], open=False, kwargs={"row_factory": dict_row})
@@ -102,7 +102,7 @@ async def send_message(cid: uuid.UUID, body: Send, uid: uuid.UUID = Depends(user
     async def generate():
         parts = []
         try:
-            with llmlog.session(str(cid)):
+            with steno.session(str(cid)):
                 async for delta in providers.stream(body.provider, model, history):
                     parts.append(delta)
                     yield delta

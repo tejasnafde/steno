@@ -82,7 +82,7 @@ export function AccessPage() {
             }}
           >
             <InputGroup>
-              <InputGroupInput type="email" placeholder="name@example.com" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={saving || emails === null} />
+              <InputGroupInput type="email" autoComplete="email" placeholder="name@example.com" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={saving || emails === null} />
               <InputGroupAddon align="inline-end">
                 <InputGroupButton type="submit" size="icon-xs" disabled={saving || !draft.trim()} aria-label="Add">
                   {saving ? <Spinner /> : <PlusIcon />}

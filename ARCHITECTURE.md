@@ -4,7 +4,7 @@
 
 ```
 browser -> chat (FastAPI) -> provider SDKs (google-genai / openai / anthropic)
-        -> llmlog (httpx patch: latency, ttft, tokens, previews, status)
+        -> steno (httpx patch: latency, ttft, tokens, previews, status)
         -> ingest (FastAPI, XADD) -> Redis stream -> worker (XREADGROUP)
         -> Postgres (inference_logs) -> Grafana (reads Postgres directly)
 ```
@@ -15,10 +15,10 @@ through the ingest/Redis/worker path.
 
 ## Ingestion flow
 
-1. `chat/main.py` calls `llmlog.instrument()` at import time, patching
+1. `chat/main.py` calls `steno.instrument()` at import time, patching
    `httpx.AsyncClient.send` and, if importable, the anthropic SDK's
    `httpx2` fork. No provider SDK code is touched.
-2. `chat` wraps a provider call in `llmlog.session(str(conversation_id))`,
+2. `chat` wraps a provider call in `steno.session(str(conversation_id))`,
    a ContextVar set for the request, tagging any HTTP call underneath with
    that session id with no argument threading through `providers.py`.
 3. Patched `send()` checks the request host against a `PROVIDERS` map and
@@ -36,7 +36,7 @@ through the ingest/Redis/worker path.
 5. `emit()` puts the event on an in-process `asyncio.Queue` (lazy,
    `maxsize=10_000`), drained by one task, `flush_forever`: wait for one
    item, sleep 0.5s to let more arrive, drain up to 100, POST the batch to
-   `LLMLOG_ENDPOINT`, retrying 3 times with `2**attempt` backoff.
+   `STENO_ENDPOINT`, retrying 3 times with `2**attempt` backoff.
 
 One event's shape, crossing the wire to ingest (fields trimmed for space):
 
@@ -70,13 +70,13 @@ The anthropic SDK ships on `httpx2`, an internal fork, not `httpx`, and
 patching only `httpx` would silently miss every Anthropic call, which is
 why `instrument()` patches both and no-ops on `httpx2` if not installed.
 
-`llmlog.session(conversation_id)` uses a ContextVar, not a parameter, so
+`steno.session(conversation_id)` uses a ContextVar, not a parameter, so
 tagging a log row with a conversation costs one `with` block, and is
 per-asyncio-task, so concurrent requests do not bleed session ids.
 `ttft_ms` is set once, on the first chunk delivered through
 `TeeStream.__aiter__`, and stays null for non-streaming responses.
 
-PII redaction (`llmlog/redact.py`, regexes for email, card, phone) runs
+PII redaction (`steno/redact.py`, regexes for email, card, phone) runs
 only on the preview fields, truncated to 300 characters. **Full prompts
 and completions are never sent to ingest and never stored**: previews are
 enough to eyeball a call in Grafana's "Recent" panel, and storing full
@@ -125,7 +125,7 @@ Postgres on first start.
   `flush_forever` retries a batch POST up to 3 times, and `ON CONFLICT
   (event_id) DO NOTHING` makes a retry safe to replay. `session_id` is a
   bare uuid, deliberately not a foreign key to `conversations.id`: a log
-  event can outlive its conversation, and `llmlog` has no dependency on
+  event can outlive its conversation, and `steno` has no dependency on
   `chat`'s schema at all, so a third-party app could use the SDK with no
   `conversations` table in existence. A foreign key here would make the
   observability table depend on the product table, backwards from the
@@ -162,7 +162,7 @@ Postgres on first start.
 
 - **Provider down or errors**: the exception surfaces in `providers.py`;
   `generate()` yields an inline `[error] ...` chunk and still saves the
-  partial text. `llmlog`'s `send()` marks the event `status: "error"`.
+  partial text. `steno`'s `send()` marks the event `status: "error"`.
 - **Ingest down**: `flush_forever` retries 3 times (1s, 2s, 4s), then
   moves on. **The failed batch is not requeued or persisted; it is lost.**
   The biggest gap here: an outage longer than a few seconds loses whatever

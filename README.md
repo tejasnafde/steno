@@ -1,4 +1,4 @@
-# inference-logger
+# steno
 
 A small chatbot plus an auto-instrumenting SDK that logs every LLM call into
 an event pipeline and Postgres, with Grafana dashboards on top. The SDK
@@ -8,7 +8,7 @@ chatbot knows it is being logged.
 ```
 browser -> chat (FastAPI, streamed responses)
               |  official provider SDKs (google-genai / openai / anthropic; Groq rides the openai SDK)
-              |  llmlog patches httpx underneath them: latency, ttft, tokens, previews, status
+              |  steno patches httpx underneath them: latency, ttft, tokens, previews, status
               v
            ingest (FastAPI)  --XADD-->  Redis stream  --XREADGROUP-->  worker  -->  Postgres  -->  Grafana
 ```
@@ -26,7 +26,7 @@ open http://localhost:3000/admin/  # Grafana dashboards
 
 | Path | What |
 |---|---|
-| `llmlog/` | The SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK's fork). `session(id)` tags calls with a conversation id via a ContextVar. Events batch in memory and flush to `LLMLOG_ENDPOINT`. |
+| `steno/` | The SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK's fork). `session(id)` tags calls with a conversation id via a ContextVar. Events batch in memory and flush to `STENO_ENDPOINT`. |
 | `chat/` | Chatbot API (`main.py`) and one streaming generator per provider (`providers.py`). Owns `conversations` and `messages`; serves the built `web/` UI as static files. |
 | `web/` | React UI: Vite, TypeScript, Tailwind v4, shadcn. `src/lib/api.ts` is the fetch layer, `src/hooks/use-chat.ts` holds the chat state. |
 | `ingest/` | `main.py` validates a batch of events and appends to a Redis stream, returns 202. `worker.py` reads the stream with a consumer group and writes to Postgres, idempotent on `event_id`. |
@@ -37,10 +37,10 @@ open http://localhost:3000/admin/  # Grafana dashboards
 ## Using the SDK in your own app
 
 ```python
-import llmlog
-llmlog.instrument("http://ingest:8001/v1/logs")
+import steno
+steno.instrument("http://ingest:8001/v1/logs")
 
-with llmlog.session(conversation_id):
+with steno.session(conversation_id):
     ...  # any google-genai / openai / anthropic call, streaming or not
 ```
 

@@ -33,8 +33,8 @@ PREVIEW_CHARS = 300
 BATCH_SIZE = 100
 FLUSH_SECONDS = 0.5
 
-session_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("llmlog_session", default=None)
-endpoint = os.environ.get("LLMLOG_ENDPOINT", "http://localhost:8001/v1/logs")
+session_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("steno_session", default=None)
+endpoint = os.environ.get("STENO_ENDPOINT", "http://localhost:8001/v1/logs")
 queue: asyncio.Queue | None = None
 flusher: asyncio.Task | None = None
 dropped = 0
@@ -149,7 +149,7 @@ def emit(event: dict) -> None:
     except asyncio.QueueFull:
         dropped += 1  # drop on overflow; spill to disk if ingest outages must be lossless
         if dropped % 100 == 1:
-            print(f"llmlog: dropped {dropped} events, ingest not keeping up", flush=True)
+            print(f"steno: dropped {dropped} events, ingest not keeping up", flush=True)
 
 
 async def flush_forever() -> None:

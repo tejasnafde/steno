@@ -1,5 +1,5 @@
 """One async generator of text deltas per provider, all through official SDKs.
-llmlog observes these calls at the httpx layer, so nothing here knows about logging."""
+steno observes these calls at the httpx layer, so nothing here knows about logging."""
 import os
 
 DEFAULT_MODEL = {

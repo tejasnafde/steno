@@ -1,6 +1,6 @@
 """Run with: python -m pytest -q"""
-from llmlog import completed, parse_response
-from llmlog.redact import redact
+from steno import completed, parse_response
+from steno.redact import redact
 
 SSE = "text/event-stream"
 

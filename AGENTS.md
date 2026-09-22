@@ -4,7 +4,7 @@ Small codebase, keep it that way. Read this before editing.
 
 ## Layout
 
-- `llmlog/` is the SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK moved to that fork; patching one misses the other). `session(id)` tags calls through a ContextVar. Events queue in memory and flush in batches to `LLMLOG_ENDPOINT`.
+- `steno/` is the SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK moved to that fork; patching one misses the other). `session(id)` tags calls through a ContextVar. Events queue in memory and flush in batches to `STENO_ENDPOINT`.
 - `chat/` is the chatbot API: FastAPI routes in `main.py`, one async generator per provider in `providers.py`. It owns `conversations` and `messages`. It serves `chat/static` when present; the Dockerfile builds `web/` into it.
 - `web/` is the React UI: Vite, TypeScript, Tailwind v4, shadcn (base-nova preset, so use `render`, not `asChild`). Structure: `src/lib/api.ts` (fetch layer and types), `src/hooks/use-chat.ts` (all state), `src/components/*.tsx` (one component per file), `src/components/ui` (shadcn, do not hand-edit). Dev: `npm run dev` in `web/` proxies `/api` to :8000.
 - `ingest/main.py` validates batches and appends to a Redis stream. `ingest/worker.py` consumes with a consumer group and inserts into `inference_logs`.
@@ -17,7 +17,7 @@ docker compose up --build          # everything
 python -m pytest -q                # unit tests (needs .venv with requirements + pytest)
 docker compose exec postgres psql -U app -d app
 docker compose logs -f chat ingest worker          # request logs (uvicorn) and worker batch counts
-gcloud --configuration=personal compute ssh llmlog --zone us-central1-a -- \
+gcloud --configuration=personal compute ssh steno --zone us-central1-a -- \
   'cd app && sudo docker compose -f docker-compose.yml -f deploy/compose.prod.yml logs -f --tail 100 chat'
 ```
 
