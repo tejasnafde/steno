@@ -23,6 +23,7 @@ TITLE_PROMPT = "Write a title of at most five words for this conversation. Reply
 async def lifespan(app):
     await pool.open()
     await admin.seed_allowlist()
+    providers.warm()
     yield
     await pool.close()
 
