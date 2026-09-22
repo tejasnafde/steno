@@ -27,8 +27,8 @@ open http://localhost:3000/admin/  # Grafana dashboards
 | Path | What |
 |---|---|
 | `steno/` | The SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK's fork). `session(id)` tags calls with a conversation id via a ContextVar. Events batch in memory and flush to `STENO_ENDPOINT`. |
-| `chat/` | Chatbot API (`main.py`) and one streaming generator per provider (`providers.py`). Owns `conversations` and `messages`; serves the built `web/` UI as static files. |
-| `web/` | React UI: Vite, TypeScript, Tailwind v4, shadcn. `src/lib/api.ts` is the fetch layer, `src/hooks/use-chat.ts` holds the chat state. |
+| `chat/` | Chatbot API (`main.py`), one streaming generator per provider (`providers.py`), and the Cloudflare Access allowlist API (`access.py`). Owns `conversations` and `messages`, scoped to an anonymous per-browser `uid` cookie. Serves the built `web/` UI as static files. |
+| `web/` | React UI: Vite, TypeScript, Tailwind v4, shadcn (base-nova). `src/lib/api.ts` is the fetch layer, `src/hooks/use-chat.ts` holds the chat state, `src/components/*` one component per file. `/admin/access` edits who may open `/admin`. |
 | `ingest/` | `main.py` validates a batch of events and appends to a Redis stream, returns 202. `worker.py` reads the stream with a consumer group and writes to Postgres, idempotent on `event_id`. |
 | `db/` | `schema.sql`, the only schema definition. Three tables: `conversations`, `messages`, `inference_logs`. Decisions live in its comments. |
 | `grafana/` | Provisioned datasource (reads Postgres directly) and the `Inference` dashboard. |

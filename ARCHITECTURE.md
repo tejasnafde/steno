@@ -110,10 +110,14 @@ dropped, so the conversation can resume.
 Three tables in `db/schema.sql`, the single source of truth, loaded by
 Postgres on first start.
 
-- **`conversations`**: id, optional title (first 60 characters of the
-  first user message), timestamps. Owned by `chat`.
+- **`conversations`**: id, `user_id`, optional title (first 60 characters of
+  the first user message), timestamps. Owned by `chat`. `user_id` is an
+  anonymous per-browser identity from an HttpOnly `uid` cookie set on first
+  request; every conversation query filters by it. There are no accounts,
+  which is the right trade for a demo that strangers open from a link: no
+  sign-up wall, and nobody sees another visitor's chats.
 - **`messages`**: one row per turn, `role` constrained to
-  `user`/`assistant`, a real foreign key to `conversations` (`on delete
+  `user`/`assistant`, `model` on assistant turns, a real foreign key to `conversations` (`on delete
   cascade`) and one index (`conversation_id, id`). Small, transactional,
   always read by conversation id, so both fit without complication.
 - **`inference_logs`**: one row per LLM call, written only by the worker.
@@ -202,7 +206,7 @@ the build does not OOM on a 1 GB machine). `deploy/deploy.sh` tars the
 tree to the VM over `gcloud compute ssh`, writes `.env` from a local
 `.env.prod`, and runs the compose overlay. A Cloudflare Tunnel
 (`TUNNEL_TOKEN`) exposes `chat` and `grafana` with no inbound port open.
-Grafana sits at `/admin/`, meant to sit behind Cloudflare Access;
+Grafana sits at `/admin/` behind Cloudflare Access with an email allowlist. The allowlist is editable from `/admin/access`, a page in the chat app that calls the Access API with a scoped token (`CF_ACCESS_*` in `.env.prod`); the page itself is inside the protected path, so only allowlisted users reach it, and it refuses to remove the caller's own address. Grafana sits behind Access;
 anonymous Viewer access is on in Grafana itself only because Access is
 assumed to be the real auth layer in front of it, not because the
 dashboard is public.
