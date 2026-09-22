@@ -7,7 +7,7 @@ from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 STREAM = "inference_logs"
 app = FastAPI(title="ingest")
@@ -33,16 +33,23 @@ class Event(BaseModel):
 
 
 class Batch(BaseModel):
-    events: list[Event] = Field(max_length=500)
+    events: list[dict] = Field(max_length=500)
 
 
 @app.post("/v1/logs", status_code=202)
 async def logs(batch: Batch):
+    accepted, rejected = 0, 0
     pipe = r.pipeline()
-    for e in batch.events:
-        pipe.xadd(STREAM, {"e": e.model_dump_json()}, maxlen=1_000_000, approximate=True)
+    for raw in batch.events:  # per event, so one bad event does not reject the batch
+        try:
+            event = Event.model_validate(raw)
+        except ValidationError:
+            rejected += 1
+            continue
+        pipe.xadd(STREAM, {"e": event.model_dump_json()}, maxlen=1_000_000, approximate=True)
+        accepted += 1
     await pipe.execute()
-    return {"accepted": len(batch.events)}
+    return {"accepted": accepted, "rejected": rejected}
 
 
 @app.get("/health")

@@ -25,7 +25,7 @@ async def main():
     except redis.ResponseError as e:
         if "BUSYGROUP" not in str(e):
             raise
-    conn = await psycopg.AsyncConnection.connect(os.environ["DATABASE_URL"], autocommit=True)
+    conn = await psycopg.AsyncConnection.connect(os.environ["DATABASE_URL"])
     cursor = "0"  # "0" replays this consumer's un-acked entries after a crash, then ">" reads new ones
     while True:
         try:
@@ -43,6 +43,7 @@ async def main():
             rows.append(row)
         async with conn.cursor() as cur:
             await cur.executemany(SQL, rows)
+        await conn.commit()  # one transaction per batch; a crash before this line replays the whole batch
         await r.xack(STREAM, GROUP, *[entry_id for entry_id, fields in entries])
         print(f"wrote {len(rows)}", flush=True)
 

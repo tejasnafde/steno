@@ -141,6 +141,8 @@ def emit(event: dict) -> None:
         queue.put_nowait(event)
     except asyncio.QueueFull:
         dropped += 1  # drop on overflow; spill to disk if ingest outages must be lossless
+        if dropped % 100 == 1:
+            print(f"llmlog: dropped {dropped} events, ingest not keeping up", flush=True)
 
 
 async def flush_forever() -> None:
