@@ -51,3 +51,22 @@ def test_session_cookie_roundtrip(monkeypatch):
     assert v and v.user_id == "uid123" and v.email == "a@b.co" and not v.anonymous
     assert auth.verify(cookie[:-1] + ("0" if cookie[-1] != "0" else "1")) is None
     assert auth.verify("garbage") is None
+
+
+def test_friendly_errors(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    from chat.providers import friendly_error
+
+    class Status(Exception):
+        def __init__(self, status_code, body):
+            self.status_code, self.body = status_code, body
+
+    bad_key = Status(401, {"error": {"code": "invalid_api_key", "message": "Incorrect API key provided: sk-proj-xxx"}})
+    assert friendly_error(bad_key, "openai", "gpt-4.1-mini") == "OpenAI rejected the API key. Check it under Your keys."
+    assert "sk-proj" not in friendly_error(bad_key, "openai", "gpt-4.1-mini")
+    no_credit = Status(429, {"error": {"code": "credit_balance_exhausted", "message": "You have no credits remaining."}})
+    assert "no credit left" in friendly_error(no_credit, "openai", "gpt-4.1-mini")
+    assert "rate limiting" in friendly_error(Status(429, {"error": {"code": "rate_limit_exceeded", "message": "slow down"}}), "groq", "x")
+    assert "does not offer the model nope" in friendly_error(Status(404, {"error": {"message": "model nope not found"}}), "google", "nope")
+    assert "having trouble" in friendly_error(Status(503, {}), "anthropic", "x")
+    assert friendly_error(TimeoutError("t"), "groq", "x").startswith("Could not reach Groq")

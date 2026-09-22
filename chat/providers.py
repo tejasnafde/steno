@@ -108,5 +108,34 @@ def warm() -> None:
         asyncio.create_task(list_models(p))
 
 
+LABEL = {"google": "Gemini", "groq": "Groq", "openai": "OpenAI", "anthropic": "Anthropic"}
+
+
+def friendly_error(e: Exception, provider: str, model: str) -> str:
+    """One plain sentence for the chat instead of the provider's raw error body."""
+    name = LABEL.get(provider, provider)
+    status = getattr(e, "status_code", None) or getattr(e, "code", None)
+    body = getattr(e, "body", None)
+    detail = body.get("error", body) if isinstance(body, dict) else {}
+    code = str(detail.get("code") or detail.get("type") or "") if isinstance(detail, dict) else ""
+    message = str(detail.get("message") if isinstance(detail, dict) and detail.get("message") else e)
+    low = (code + " " + message).lower()
+    if status in (401, 403) or "api key" in low or "api_key" in low:
+        return f"{name} rejected the API key. Check it under Your keys."
+    if status == 429:
+        if any(w in low for w in ("credit", "quota", "billing")):
+            return f"The {name} account behind this key has no credit left."
+        return f"{name} is rate limiting this key. Wait a moment and retry."
+    if status == 404 or "not found" in low or "does not exist" in low:
+        return f"{name} does not offer the model {model} to this key."
+    if isinstance(status, int) and status >= 500:
+        return f"{name} is having trouble right now. Retry in a moment."
+    if isinstance(status, int) and 400 <= status < 500:
+        return f"{name} rejected the request: {message[:160]}"
+    if any(w in type(e).__name__.lower() for w in ("timeout", "connection")):
+        return f"Could not reach {name}. Check the connection and retry."
+    return f"{name} failed: {message[:160]}"
+
+
 def stream(provider: str, model: str | None, messages: list[dict], key: str | None = None):
     return PROVIDERS[provider](model or DEFAULT_MODEL[provider], messages, key)

@@ -211,7 +211,7 @@ async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer), 
                     parts.append(delta)
                     yield delta
         except Exception as e:
-            yield f"\n\n[error] {e}"
+            yield f"\n\n[error] {providers.friendly_error(e, body.provider, model)}"
         finally:
             if parts:
                 if first_turn:  # scheduled before the await below: in a cancelled scope that await re-raises and nothing after it runs
