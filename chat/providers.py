@@ -13,6 +13,13 @@ DEFAULT_MODEL = {
     "anthropic": "claude-opus-5",
 }
 # Cheapest configured model, used for one-line jobs like conversation titles. Checked in this order.
+# Every model gets the same short system prompt. Without one, small models with no tools invent tool calls
+# (a flash-lite model answered an image request with a fake dalle JSON action).
+SYSTEM = (
+    "You are a helpful assistant in a plain chat. You have no tools, no web access, and no memory beyond this "
+    "conversation. If you cannot do what is asked, say so in one sentence and offer the closest thing you can do. "
+    "Never invent tool calls, function calls, or JSON actions. Answer in Markdown."
+)
 CHEAP = {"groq": "openai/gpt-oss-20b", "google": "gemini-3.5-flash-lite", "openai": "gpt-4.1-nano", "anthropic": "claude-haiku-4-5"}
 clients: dict = {}
 
@@ -28,15 +35,22 @@ async def google(model, messages, key=None):
     from google import genai
     c = client("google", lambda: genai.Client(api_key=key or os.environ["GEMINI_API_KEY"]), key)
     contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]} for m in messages]
-    async for chunk in await c.aio.models.generate_content_stream(model=model, contents=contents):
-        if chunk.text:
-            yield chunk.text
+    config = None if "image" in model or "banana" in model else {"system_instruction": SYSTEM}  # image models reject system text
+    async for chunk in await c.aio.models.generate_content_stream(model=model, contents=contents, config=config):
+        for part in ((chunk.candidates or [{}])[0].content.parts if chunk.candidates and chunk.candidates[0].content else []) or []:
+            if part.text:
+                yield part.text
+            elif part.inline_data and part.inline_data.data:  # image models answer with bytes; ship them as a data URI the UI can render
+                import base64
+                data = part.inline_data.data
+                b64 = data.decode() if isinstance(data, bytes) and data[:4] in (b"iVBO", b"/9j/") else base64.b64encode(data).decode()
+                yield f"\n\n![generated image](data:{part.inline_data.mime_type};base64,{b64})\n\n"
 
 
 async def anthropic(model, messages, key=None):
     from anthropic import AsyncAnthropic
     c = client("anthropic", lambda: AsyncAnthropic(api_key=key or os.environ["ANTHROPIC_API_KEY"]), key)
-    async with c.messages.stream(model=model, max_tokens=16000, messages=messages) as s:
+    async with c.messages.stream(model=model, max_tokens=16000, system=SYSTEM, messages=messages) as s:
         async for text in s.text_stream:
             yield text
 
@@ -45,7 +59,7 @@ def openai_compatible(name, base_url=None, key_env="OPENAI_API_KEY"):
     async def generate(model, messages, key=None):
         from openai import AsyncOpenAI
         c = client(name, lambda: AsyncOpenAI(base_url=base_url, api_key=key or os.environ[key_env]), key)
-        stream = await c.chat.completions.create(model=model, messages=messages, stream=True, stream_options={"include_usage": True})
+        stream = await c.chat.completions.create(model=model, messages=[{"role": "system", "content": SYSTEM}, *messages], stream=True, stream_options={"include_usage": True})
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content

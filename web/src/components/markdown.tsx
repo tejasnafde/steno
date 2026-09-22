@@ -1,4 +1,4 @@
-import ReactMarkdown from "react-markdown"
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
@@ -10,6 +10,7 @@ export function Markdown({ children, className }: Props) {
     <div className={cn("flex flex-col gap-3 text-sm leading-relaxed [&_li]:mt-1", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={(url) => (url.startsWith("data:image/") ? url : defaultUrlTransform(url))}
         components={{
           h1: ({ children }) => <h1 className="text-lg font-semibold">{children}</h1>,
           h2: ({ children }) => <h2 className="text-base font-semibold">{children}</h2>,
@@ -24,6 +25,7 @@ export function Markdown({ children, className }: Props) {
           ),
           blockquote: ({ children }) => <blockquote className="border-l-2 pl-3 text-muted-foreground">{children}</blockquote>,
           pre: ({ children }) => <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs [&_code]:bg-transparent [&_code]:p-0">{children}</pre>,
+          img: ({ src, alt }) => <img src={src} alt={alt ?? ""} loading="lazy" className="max-h-[32rem] max-w-full rounded-lg border" />,
           code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{children}</code>,
           table: ({ children }) => <table className="w-full text-left text-xs [&_td]:border-t [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1">{children}</table>,
         }}

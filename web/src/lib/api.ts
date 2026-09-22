@@ -3,6 +3,7 @@ export type Message = {
   id: number | string
   role: "user" | "assistant"
   content: string
+  clientId?: string // set on messages created in this session; the React key, so swapping in the server id does not remount
   model?: string | null
   ttftMs?: number
   totalMs?: number

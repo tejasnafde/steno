@@ -50,10 +50,10 @@ export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend
             {messages.map((m, i) => {
               const live = streaming && m === last && m.role === "assistant"
               const stored = typeof m.id === "number"
-              const fresh = !stored // created in this session; rows loaded from the server do not animate in
+              const fresh = Boolean(m.clientId) // created in this session; rows loaded from the server do not animate in
               const prevUser = userBefore(i)
               return (
-                <MessageScrollerItem key={m.id} messageId={String(m.id)} scrollAnchor={m.role === "user"}>
+                <MessageScrollerItem key={m.clientId ?? m.id} messageId={String(m.clientId ?? m.id)} scrollAnchor={m.role === "user"}>
                   <div className={cn("group/row", fresh && "animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none")}>
                     {m.role === "user" ? (
                       <Message align="end">

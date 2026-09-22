@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import secrets
 import uuid
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from .db import pool, q
 
 steno.instrument()
 CONTEXT_MESSAGES = 20  # fixed window; add summarisation when context cost matters
+IMAGE_MARKDOWN = re.compile(r"!\[[^\]]*\]\(data:[^)]+\)")  # inline images are kept in messages but not fed back as context
 TITLE_PROMPT = "Write a title of at most five words for this conversation. Reply with the title only, no quotes."
 
 
@@ -203,7 +205,7 @@ async def send_message(cid: uuid.UUID, body: Send, request: Request, v: Viewer =
         "select role, content from (select id, role, content from messages where conversation_id=%s order by id desc limit %s) t order by id",
         cid, CONTEXT_MESSAGES,
     )
-    history = [{"role": r["role"], "content": r["content"]} for r in rows]
+    history = [{"role": r["role"], "content": IMAGE_MARKDOWN.sub("[image]", r["content"])} for r in rows]
 
     async def generate():
         parts = []
@@ -212,12 +214,14 @@ async def send_message(cid: uuid.UUID, body: Send, request: Request, v: Viewer =
                 async for delta in providers.stream(body.provider, model, history, key):
                     parts.append(delta)
                     yield delta
+            if not parts:
+                yield f"\n\n[error] {providers.LABEL.get(body.provider, body.provider)} returned an empty reply from {model}. Try another model."
         except Exception as e:
             yield f"\n\n[error] {providers.friendly_error(e, body.provider, model)}"
         finally:
             if parts:
                 if first_turn:  # scheduled before the await below: in a cancelled scope that await re-raises and nothing after it runs
-                    asyncio.create_task(make_title(cid, body.content, "".join(parts)))
+                    asyncio.create_task(make_title(cid, body.content, IMAGE_MARKDOWN.sub("[image]", "".join(parts))))
                 # A cancelled request keeps its partial answer, so the conversation can resume.
                 # shield: the cancelled scope re-raises on any await, but the insert still completes.
                 await asyncio.shield(q(

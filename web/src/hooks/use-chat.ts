@@ -139,8 +139,8 @@ export function useChat(refreshKey: unknown) {
       setCurrentId(id)
       setUrlConversation(id)
     }
-    const userMessage: Message = { id: `u-${Date.now()}`, role: "user", content }
-    const reply: Message = { id: `a-${Date.now()}`, role: "assistant", content: "" }
+    const userMessage: Message = { id: `u-${Date.now()}`, clientId: `u-${Date.now()}`, role: "user", content }
+    const reply: Message = { id: `a-${Date.now()}`, clientId: `a-${Date.now()}`, role: "assistant", content: "" }
     setMessages((prev) => [...prev, userMessage, reply])
     setStreaming(true)
     controller.current = new AbortController()
@@ -170,9 +170,15 @@ export function useChat(refreshKey: unknown) {
       )
       setStreaming(false)
       controller.current = null
-      // Client ids are provisional; reload so fork and copy work on real ids. A failed reply is not stored
-      // server-side, so keep the local state that shows the error instead of wiping it.
-      if (!failed) api.messages(id).then(setMessages)
+      // Swap the provisional ids for the server's without replacing the list: same keys, same timings, no remount.
+      if (!failed) {
+        api.messages(id).then((stored) => {
+          const [su, sa] = stored.slice(-2)
+          setMessages((prev) =>
+            prev.map((m) => (m.id === userMessage.id && su ? { ...m, id: su.id } : m.id === reply.id && sa ? { ...m, id: sa.id, content: sa.content } : m)),
+          )
+        })
+      }
       refreshConversations()
       setTimeout(refreshConversations, TITLE_SETTLE_MS)
     }
