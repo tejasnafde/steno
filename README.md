@@ -63,6 +63,13 @@ Nothing else changes. The SDK only looks at requests whose host matches a
 known provider and whose path looks like an inference call; everything else
 passes through untouched.
 
+## Limits
+
+The chat is free and public, so it is capped. Per IP: 10 messages a minute. Per identity per 24 hours: visitors
+20 messages and 60k tokens, signed-in users 100 messages and 400k tokens (`BURST_PER_MINUTE`, `DAILY_*` in
+`.env`). Requests on a visitor's own API key skip the daily caps. Rejections are stored in `quota_hits` and
+charted on the dashboard's Usage row next to messages and tokens per user.
+
 ## Tests
 
 ```sh

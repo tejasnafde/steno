@@ -27,7 +27,7 @@ services:
     command: uvicorn chat.main:app --host 0.0.0.0 --port 8000
     ports: ["8000:8000"]
     env_file: .env
-    environment: { DATABASE_URL: postgresql://app:app@postgres:5432/app, STENO_ENDPOINT: http://ingest:8001/v1/logs, ADMIN_EMAILS: "${ADMIN_EMAILS:-}", SESSION_SECRET: "${SESSION_SECRET:-dev-only-not-secret}" }
+    environment: { DATABASE_URL: postgresql://app:app@postgres:5432/app, STENO_ENDPOINT: http://ingest:8001/v1/logs, ADMIN_EMAILS: "${ADMIN_EMAILS:-}", SESSION_SECRET: "${SESSION_SECRET:-dev-only-not-secret}", BURST_PER_MINUTE: "${BURST_PER_MINUTE:-10}", DAILY_MESSAGES_ANON: "${DAILY_MESSAGES_ANON:-20}", DAILY_TOKENS_ANON: "${DAILY_TOKENS_ANON:-60000}", DAILY_MESSAGES_USER: "${DAILY_MESSAGES_USER:-100}", DAILY_TOKENS_USER: "${DAILY_TOKENS_USER:-400000}" }
     depends_on: { postgres: { condition: service_healthy }, ingest: { condition: service_started } }
 
   grafana:
@@ -40,8 +40,10 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_AUTH_BASIC_ENABLED: "false"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_DISABLE_LOGIN: "true"
+      GF_AUTH_DISABLE_SIGNOUT_MENU: "true"
       GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_DEFAULT_THEME: light
+      GF_USERS_DEFAULT_THEME: system
       GF_ANALYTICS_REPORTING_ENABLED: "false"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

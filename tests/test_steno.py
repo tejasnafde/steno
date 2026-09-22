@@ -70,3 +70,29 @@ def test_friendly_errors(monkeypatch):
     assert "does not offer the model nope" in friendly_error(Status(404, {"error": {"message": "model nope not found"}}), "google", "nope")
     assert "having trouble" in friendly_error(Status(503, {}), "anthropic", "x")
     assert friendly_error(TimeoutError("t"), "groq", "x").startswith("Could not reach Groq")
+
+
+def test_burst_window(monkeypatch):
+    import asyncio
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    from chat import quota
+    from chat.auth import Viewer
+    from fastapi import HTTPException
+
+    class Req:
+        headers = {"x-forwarded-for": "203.0.113.9, 10.0.0.1"}
+        client = None
+
+    async def no_db(*a, **k):
+        return None
+
+    monkeypatch.setattr(quota, "q", no_db)
+    quota.recent.clear()
+    v = Viewer("visitor-1")
+    for _ in range(quota.BURST_PER_MINUTE):
+        asyncio.run(quota.check(v, Req(), own_key=True))
+    try:
+        asyncio.run(quota.check(v, Req(), own_key=True))
+        assert False, "expected 429"
+    except HTTPException as e:
+        assert e.status_code == 429 and "Slow down" in e.detail

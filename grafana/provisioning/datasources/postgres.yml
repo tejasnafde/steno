@@ -11,6 +11,7 @@ datasources:
     secureJsonData:
       password: app
     jsonData:
+      database: app
       sslmode: disable
       postgresVersion: 1600
       timescaledb: false

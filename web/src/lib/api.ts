@@ -16,7 +16,10 @@ import { keyHeaders } from "@/lib/keys"
 
 async function request(path: string, init?: RequestInit) {
   const response = await fetch(`/api${path}`, { ...init, headers: { ...keyHeaders(), ...(init?.headers as Record<string, string> | undefined) } })
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+  if (!response.ok) {
+    const detail: unknown = await response.json().then((body) => body?.detail, () => undefined)
+    throw new Error(typeof detail === "string" && detail ? detail : `${response.status} ${response.statusText}`)
+  }
   return response
 }
 

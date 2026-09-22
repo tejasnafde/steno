@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import steno
-from . import admin, auth, providers
+from . import admin, auth, providers, quota
 from .auth import Viewer, viewer
 from .db import pool, q
 
@@ -24,6 +24,7 @@ TITLE_PROMPT = "Write a title of at most five words for this conversation. Reply
 async def lifespan(app):
     await pool.open()
     await admin.seed_allowlist()
+    await quota.ensure_table()
     providers.warm()
     yield
     await pool.close()
@@ -188,10 +189,11 @@ async def make_title(cid: uuid.UUID, prompt: str, reply: str) -> None:
 
 
 @app.post("/api/conversations/{cid}/messages")
-async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer), keys: dict = Depends(visitor_keys)):
+async def send_message(cid: uuid.UUID, body: Send, request: Request, v: Viewer = Depends(viewer), keys: dict = Depends(visitor_keys)):
     if body.provider not in providers.available(keys):
         raise HTTPException(400, f"no API key for {body.provider}")
     key = keys.get(body.provider)
+    await quota.check(v, request, own_key=bool(key))
     conversation = await owned(cid, v)
     model = body.model or providers.DEFAULT_MODEL[body.provider]
     first_turn = conversation["title"] is None

@@ -34,6 +34,13 @@ create table messages (
 );
 create index messages_conversation_idx on messages (conversation_id, id);
 
+create table quota_hits (
+  id          bigserial primary key,
+  user_id     text not null,
+  kind        text not null,                     -- burst, messages, tokens
+  created_at  timestamptz not null default now()
+);
+
 -- Observability data written only by the ingestion worker. One row per LLM HTTP call.
 -- Typed columns for everything we query or chart; jsonb for the long tail.
 create table inference_logs (

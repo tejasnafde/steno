@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ArchiveIcon, ArchiveRestoreIcon, ChartLineIcon, ChevronsUpDownIcon, DownloadIcon, Link2Icon, Link2OffIcon, LogOutIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
+import { useTheme } from "@/components/theme-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -53,6 +54,10 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState("")
   const [showArchived, setShowArchived] = useState(false)
+  const { theme } = useTheme()
+  const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
+  // Open the dashboard itself, without Grafana's chrome, in the theme the app is using right now.
+  const dashboardsUrl = `/admin/d/inference/inference?kiosk&theme=${dark ? "dark" : "light"}`
 
   const active = (conversations ?? []).filter((c) => !c.archived_at)
   const archived = (conversations ?? []).filter((c) => c.archived_at)
@@ -220,7 +225,7 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
               {me.admin && (
                 <>
                   <DropdownMenuGroup>
-                    <DropdownMenuItem render={<a href="/admin/" target="_blank" rel="noreferrer" />}>
+                    <DropdownMenuItem render={<a href={dashboardsUrl} target="_blank" rel="noreferrer" />}>
                       <ChartLineIcon />
                       Dashboards
                     </DropdownMenuItem>

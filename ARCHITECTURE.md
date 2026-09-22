@@ -81,6 +81,18 @@ header on each request. `chat` builds an SDK client per (provider, key) for the
 call and stores nothing. The logging SDK records request bodies and timings,
 never headers, so keys do not reach `inference_logs`.
 
+### Limits
+
+`chat/quota.py` runs before every send. A per-IP sliding window in process memory
+(10 a minute) stops a script from clearing cookies to reset its identity; then two
+daily caps per identity, messages counted from `messages` (exact, synchronous)
+and tokens summed from `inference_logs` joined to the identity's conversations
+(a second behind, which is fine for a cap). Visitors get 20 messages and 60k
+tokens, signed-in users 100 and 400k, so signing in is the first upgrade path
+and a visitor's own API key is the second: those requests skip the daily caps.
+Every rejection is a row in `quota_hits`, so abuse is visible on the dashboard's
+Usage row, not just refused.
+
 ## Cancellation
 
 Two paths, both must emit a log row or Grafana under-counts cancellations.
