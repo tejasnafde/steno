@@ -22,40 +22,37 @@ export function Composer({ streaming, onSend, onStop, ...picker }: Props) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
-      <InputGroup>
-        <InputGroupTextarea
-          ref={input}
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault()
-              submit()
-            }
-          }}
-          placeholder="Ask anything"
-          aria-label="Message"
-          rows={1}
-          className="max-h-48 field-sizing-content"
-        />
-        <InputGroupAddon align="block-end">
-          <ModelPicker {...picker} />
-          <div className="ml-auto">
-            {streaming ? (
-              <InputGroupButton size="icon-sm" variant="destructive" onClick={onStop} aria-label="Stop generating">
-                <SquareIcon />
-              </InputGroupButton>
-            ) : (
-              <InputGroupButton size="icon-sm" variant="default" onClick={submit} disabled={!text.trim()} aria-label="Send">
-                <ArrowUpIcon />
-              </InputGroupButton>
-            )}
-          </div>
-        </InputGroupAddon>
-      </InputGroup>
-      <p className="meta px-1">enter to send · shift+enter for a new line · every call is recorded</p>
-    </div>
+    <InputGroup className="mx-auto w-full max-w-3xl">
+      <InputGroupTextarea
+        ref={input}
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            submit()
+          }
+        }}
+        placeholder="Ask anything. Enter sends, Shift+Enter adds a line."
+        aria-label="Message"
+        rows={1}
+        className="max-h-48 field-sizing-content"
+      />
+      <InputGroupAddon align="block-end">
+        <ModelPicker {...picker} />
+        <div className="ml-auto">
+          {streaming ? (
+            <InputGroupButton size="icon-sm" variant="destructive" onClick={onStop} aria-label="Stop generating">
+              <SquareIcon />
+            </InputGroupButton>
+          ) : (
+            <InputGroupButton size="icon-sm" variant="default" onClick={submit} disabled={!text.trim()} aria-label="Send">
+              <ArrowUpIcon />
+            </InputGroupButton>
+          )}
+        </div>
+      </InputGroupAddon>
+    </InputGroup>
   )
 }

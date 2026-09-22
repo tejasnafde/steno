@@ -1,12 +1,26 @@
 -- Transactional data owned by the chat app.
-create table conversations (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null,                     -- anonymous browser identity from the uid cookie; no accounts
-  title       text,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+create table users (
+  id          text primary key,                  -- Firebase Auth uid
+  email       text not null,
+  name        text,
+  picture     text,
+  created_at  timestamptz not null default now()
 );
 
+create table admin_allowlist (
+  email       text primary key,                  -- who may open /admin; seeded from ADMIN_EMAILS, edited in the UI
+  added_by    text,
+  created_at  timestamptz not null default now()
+);
+
+create table conversations (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      text not null,                    -- Firebase uid, or the anonymous uid cookie before sign-in
+  title        text,
+  archived_at  timestamptz,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
 create index conversations_user_idx on conversations (user_id, updated_at desc);
 
 create table messages (

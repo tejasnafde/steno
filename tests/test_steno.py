@@ -41,3 +41,13 @@ def test_completed_markers():
 def test_redact():
     out = redact("mail a@b.co, card 4111 1111 1111 1111, phone +91 84528 67602, year 2024")
     assert "[EMAIL]" in out and "[CARD]" in out and "[PHONE]" in out and "2024" in out
+
+
+def test_session_cookie_roundtrip(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    from chat import auth
+    cookie = auth.sign("uid123", "a@b.co")
+    v = auth.verify(cookie)
+    assert v and v.user_id == "uid123" and v.email == "a@b.co" and not v.anonymous
+    assert auth.verify(cookie[:-1] + ("0" if cookie[-1] != "0" else "1")) is None
+    assert auth.verify("garbage") is None

@@ -8,6 +8,8 @@ DEFAULT_MODEL = {
     "openai": "gpt-4.1-mini",
     "anthropic": "claude-opus-5",
 }
+# Cheapest configured model, used for one-line jobs like conversation titles. Checked in this order.
+CHEAP = {"groq": "openai/gpt-oss-20b", "google": "gemini-3.5-flash-lite", "openai": "gpt-4.1-nano", "anthropic": "claude-haiku-4-5"}
 clients: dict = {}
 
 

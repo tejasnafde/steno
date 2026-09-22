@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { ArrowLeftIcon, PlusIcon, XIcon } from "lucide-react"
 
-import { APP_NAME } from "@/components/site-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,7 +17,13 @@ export function AccessPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.allowlist().then((r) => { setEmails(r.emails); setMe(r.me) }, (e) => setError(e.message))
+    api.allowlist().then(
+      (r) => {
+        setEmails(r.emails)
+        setMe(r.me)
+      },
+      (e) => setError((e as Error).message.startsWith("401") ? "Sign in first, then come back to this page." : (e as Error).message),
+    )
   }, [])
 
   const save = async (next: string[]) => {
@@ -37,22 +42,21 @@ export function AccessPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
-      <Button variant="ghost" size="sm" className="self-start" render={<a href="/admin/" />}>
+      <Button variant="ghost" size="sm" className="self-start" render={<a href="/" />}>
         <ArrowLeftIcon data-icon="inline-start" />
-        Dashboards
+        Back to chat
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle>Who can open /admin</CardTitle>
+          <CardTitle>Who can open the dashboards</CardTitle>
           <CardDescription>
-            Cloudflare Access checks this list before anything under /admin loads. Signed in as {me || "..."}. Your own
-            address cannot be removed.
+            Anyone on this list can sign in with Google and open /admin. You are {me || "..."}; you cannot remove yourself.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {error && (
             <Alert variant="destructive">
-              <AlertTitle>Could not load or save</AlertTitle>
+              <AlertTitle>Something went wrong</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -82,7 +86,14 @@ export function AccessPage() {
             }}
           >
             <InputGroup>
-              <InputGroupInput type="email" autoComplete="email" placeholder="name@example.com" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={saving || emails === null} />
+              <InputGroupInput
+                type="email"
+                autoComplete="email"
+                placeholder="Add an email address"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                disabled={saving || emails === null}
+              />
               <InputGroupAddon align="inline-end">
                 <InputGroupButton type="submit" size="icon-xs" disabled={saving || !draft.trim()} aria-label="Add">
                   {saving ? <Spinner /> : <PlusIcon />}
@@ -92,7 +103,6 @@ export function AccessPage() {
           </form>
         </CardFooter>
       </Card>
-      <p className="text-center text-xs text-muted-foreground">{APP_NAME}</p>
     </main>
   )
 }

@@ -146,7 +146,7 @@
   --signal: oklch(0.78 0.15 235);
 }
 
-/* Monospace metadata labels: model ids, timings, section labels. */
-@utility meta {
-  @apply font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground;
+/* Monospace identifiers: model ids and timings. Prose never uses this. */
+@utility ident {
+  @apply font-mono text-xs tabular-nums;
 }

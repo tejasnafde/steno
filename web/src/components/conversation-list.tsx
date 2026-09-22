@@ -1,6 +1,16 @@
-import { PlusIcon, Trash2Icon } from "lucide-react"
+import { useState } from "react"
+import { ArchiveIcon, ArchiveRestoreIcon, DownloadIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Sidebar,
   SidebarContent,
@@ -13,19 +23,96 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
-import type { Conversation } from "@/lib/api"
-import { relativeTime } from "@/lib/format"
+import { api, type Conversation, type Me } from "@/lib/api"
+import { dateBucket } from "@/lib/format"
 
 type Props = {
-  conversations: Conversation[]
+  conversations: Conversation[] | null
   currentId: string | null
+  me: Me | null
   onOpen: (id: string) => void
   onNew: () => void
+  onRename: (id: string, title: string) => void
+  onArchive: (id: string, archived: boolean) => void
   onDelete: (id: string) => void
+  onSignIn: () => void
 }
 
-export function ConversationList({ conversations, currentId, onOpen, onNew, onDelete }: Props) {
+const BUCKETS = ["Today", "Yesterday", "Previous 7 days", "Older"] as const
+
+export function ConversationList({ conversations, currentId, me, onOpen, onNew, onRename, onArchive, onDelete, onSignIn }: Props) {
+  const [editing, setEditing] = useState<string | null>(null)
+  const [draft, setDraft] = useState("")
+  const [showArchived, setShowArchived] = useState(false)
+
+  const active = (conversations ?? []).filter((c) => !c.archived_at)
+  const archived = (conversations ?? []).filter((c) => c.archived_at)
+
+  const commitRename = (id: string) => {
+    if (draft.trim()) onRename(id, draft.trim())
+    setEditing(null)
+  }
+
+  const row = (c: Conversation) => (
+    <SidebarMenuItem key={c.id} className="group/item">
+      {editing === c.id ? (
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commitRename(c.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitRename(c.id)
+            if (e.key === "Escape") setEditing(null)
+          }}
+          aria-label="Conversation title"
+          className="h-8"
+        />
+      ) : (
+        <SidebarMenuButton isActive={c.id === currentId} onClick={() => onOpen(c.id)}>
+          <span className="truncate">{c.title ?? "New conversation"}</span>
+        </SidebarMenuButton>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<SidebarMenuAction aria-label="Conversation options" className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 data-open:opacity-100" />}
+        >
+          <MoreHorizontalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="right">
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => {
+                setDraft(c.title ?? "")
+                setEditing(c.id)
+              }}
+            >
+              <PencilIcon />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onArchive(c.id, !c.archived_at)}>
+              {c.archived_at ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+              {c.archived_at ? "Unarchive" : "Archive"}
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<a href={api.exportUrl(c.id)} download />}>
+              <DownloadIcon />
+              Download as Markdown
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem variant="destructive" onClick={() => onDelete(c.id)}>
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
+  )
+
   return (
     <Sidebar>
       <SidebarHeader className="h-12 justify-center border-b">
@@ -35,32 +122,66 @@ export function ConversationList({ conversations, currentId, onOpen, onNew, onDe
         </Button>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="meta">conversations · {conversations.length}</SidebarGroupLabel>
-          <SidebarGroupContent>
+        {conversations === null ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Today</SidebarGroupLabel>
             <SidebarMenu>
-              {conversations.map((c) => (
-                <SidebarMenuItem key={c.id} className="group/item">
-                  <SidebarMenuButton isActive={c.id === currentId} onClick={() => onOpen(c.id)} className="h-auto py-2">
-                    <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                      <span className="truncate">{c.title ?? "New conversation"}</span>
-                      <span className="meta ml-auto shrink-0 tabular-nums">{relativeTime(c.updated_at)}</span>
-                    </span>
-                  </SidebarMenuButton>
-                  <SidebarMenuAction
-                    aria-label={`Delete conversation: ${c.title ?? "untitled"}`}
-                    className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-                    onClick={() => onDelete(c.id)}
-                  >
-                    <Trash2Icon />
-                  </SidebarMenuAction>
+              {[0, 1, 2].map((i) => (
+                <SidebarMenuItem key={i}>
+                  <SidebarMenuSkeleton />
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          </SidebarGroup>
+        ) : (
+          <>
+            {active.length === 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel>No conversations yet</SidebarGroupLabel>
+              </SidebarGroup>
+            )}
+            {BUCKETS.map((bucket) => {
+              const items = active.filter((c) => dateBucket(c.updated_at) === bucket)
+              if (items.length === 0) return null
+              return (
+                <SidebarGroup key={bucket}>
+                  <SidebarGroupLabel>{bucket}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>{items.map(row)}</SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )
+            })}
+            {archived.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  render={<button type="button" onClick={() => setShowArchived((v) => !v)} className="w-full cursor-pointer text-left" />}
+                >
+                  Archived · {archived.length} {showArchived ? "▾" : "▸"}
+                </SidebarGroupLabel>
+                {showArchived && (
+                  <SidebarGroupContent>
+                    <SidebarMenu>{archived.map(row)}</SidebarMenu>
+                  </SidebarGroupContent>
+                )}
+              </SidebarGroup>
+            )}
+          </>
+        )}
       </SidebarContent>
-      <SidebarFooter className="meta border-t normal-case tracking-normal">Conversations belong to this browser. Nothing to sign in to.</SidebarFooter>
+      <SidebarFooter className="border-t text-xs text-muted-foreground">
+        {me?.user ? (
+          <span className="truncate">Saved to {me.user.email}</span>
+        ) : (
+          <span>
+            Conversations stay in this browser.{" "}
+            <button type="button" className="underline underline-offset-4 hover:text-foreground" onClick={onSignIn}>
+              Sign in
+            </button>{" "}
+            to keep them on every device.
+          </span>
+        )}
+      </SidebarFooter>
     </Sidebar>
   )
 }

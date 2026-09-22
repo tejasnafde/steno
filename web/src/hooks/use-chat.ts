@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { api, textChunks, type Conversation, type Message, type Models } from "@/lib/api"
 
 const PARAM = "c"
+const TITLE_SETTLE_MS = 3000 // the server names a conversation a moment after the first reply
 
 function urlConversation() {
   return new URLSearchParams(location.search).get(PARAM)
@@ -15,11 +16,11 @@ function setUrlConversation(id: string | null) {
   history.replaceState(null, "", url)
 }
 
-export function useChat() {
+export function useChat(refreshKey: unknown) {
   const [models, setModels] = useState<Models>({})
   const [provider, setProvider] = useState("")
   const [model, setModel] = useState("")
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<Conversation[] | null>(null)
   const [currentId, setCurrentId] = useState<string | null>(urlConversation)
   const [messages, setMessages] = useState<Message[]>([])
   const [streaming, setStreaming] = useState(false)
@@ -31,7 +32,6 @@ export function useChat() {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...(typeof change === "function" ? change(m) : change) } : m)))
 
   useEffect(() => {
-    refreshConversations()
     api.models().then((m) => {
       const first = Object.keys(m)[0]
       setModels(m)
@@ -42,11 +42,16 @@ export function useChat() {
     })
     const initial = urlConversation()
     if (initial) api.messages(initial).then(setMessages, () => setUrlConversation(null))
-  }, [refreshConversations])
+  }, [])
 
-  const selectProvider = (next: string) => {
-    setProvider(next)
-    setModel(models[next]?.[0] ?? "")
+  // Re-read the list whenever identity changes: signing in moves this browser's conversations to the account.
+  useEffect(() => {
+    refreshConversations()
+  }, [refreshConversations, refreshKey])
+
+  const select = (nextProvider: string, nextModel: string) => {
+    setProvider(nextProvider)
+    setModel(nextModel)
   }
 
   const open = async (id: string) => {
@@ -63,10 +68,28 @@ export function useChat() {
     setMessages([])
   }
 
+  const rename = async (id: string, title: string) => {
+    await api.patchConversation(id, { title })
+    refreshConversations()
+  }
+
+  const archive = async (id: string, archived: boolean) => {
+    await api.patchConversation(id, { archived })
+    if (archived && id === currentId) startNew()
+    refreshConversations()
+  }
+
   const remove = async (id: string) => {
     await api.deleteConversation(id)
     if (id === currentId) startNew()
     refreshConversations()
+  }
+
+  const fork = async (upto: number) => {
+    if (!currentId) return
+    const { id } = await api.fork(currentId, upto)
+    await refreshConversations()
+    await open(id)
   }
 
   const stop = () => controller.current?.abort()
@@ -97,9 +120,12 @@ export function useChat() {
       patch(reply.id, { totalMs: performance.now() - started })
       setStreaming(false)
       controller.current = null
+      // Client ids are provisional; reload so fork and copy work on real message ids.
+      api.messages(id).then(setMessages)
       refreshConversations()
+      setTimeout(refreshConversations, TITLE_SETTLE_MS)
     }
   }
 
-  return { models, provider, model, selectProvider, setModel, conversations, currentId, messages, streaming, open, startNew, remove, send, stop }
+  return { models, provider, model, select, conversations, currentId, messages, streaming, open, startNew, rename, archive, remove, fork, send, stop }
 }
