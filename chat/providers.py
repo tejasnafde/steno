@@ -3,7 +3,7 @@ llmlog observes these calls at the httpx layer, so nothing here knows about logg
 import os
 
 DEFAULT_MODEL = {
-    "google": "gemini-3.5-flash",
+    "google": "gemini-3.5-flash-lite",  # lowest time to first token of the family (measured 0.8 to 1.9 s)
     "groq": "openai/gpt-oss-120b",
     "openai": "gpt-4.1-mini",
     "anthropic": "claude-opus-5",

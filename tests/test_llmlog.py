@@ -1,5 +1,5 @@
 """Run with: python -m pytest -q"""
-from llmlog import parse_response
+from llmlog import completed, parse_response
 from llmlog.redact import redact
 
 SSE = "text/event-stream"
@@ -29,6 +29,13 @@ def test_openai_sse_and_json():
 def test_groq_usage_field():
     raw = b'data: {"choices":[{"delta":{"content":"a"}}],"x_groq":{"usage":{"prompt_tokens":9,"completion_tokens":1}}}\n\n'
     assert parse_response("groq", SSE, raw) == ("a", 9, 1)
+
+
+def test_completed_markers():
+    assert completed("groq", b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+    assert not completed("groq", b'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n')
+    assert completed("google", b'data: {"candidates":[{"finishReason":"STOP"}]}')
+    assert not completed("anthropic", b'data: {"type":"content_block_delta"}')
 
 
 def test_redact():

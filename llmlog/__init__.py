@@ -26,6 +26,9 @@ PROVIDERS = {
 }
 OPENAI_WIRE = {"openai", "groq"}
 INFERENCE_PATHS = ("generatecontent", "/messages", "/chat/completions", "/responses")
+# Some SDKs close the response as soon as they see the terminal event, before the byte stream is
+# drained. A close is only a cancel when none of these markers has arrived.
+END_MARKERS = {"google": (b"finishReason",), "anthropic": (b"message_stop",), "openai": (b"[DONE]", b"finish_reason"), "groq": (b"[DONE]", b"finish_reason")}
 PREVIEW_CHARS = 300
 BATCH_SIZE = 100
 FLUSH_SECONDS = 0.5
@@ -121,6 +124,10 @@ def parse_response(provider: str, content_type: str, raw: bytes) -> tuple[str, i
     return "".join(out), inp, outp
 
 
+def completed(provider: str, raw: bytes) -> bool:
+    return any(m in raw for m in END_MARKERS.get(provider, ()))
+
+
 def finalize(event: dict, content_type: str, raw: bytes) -> None:
     try:
         text, inp, outp = parse_response(event["provider"], content_type, raw)
@@ -189,7 +196,8 @@ def patch(mod) -> None:
                 raise
 
         async def aclose(self):
-            self.finish("cancelled")  # no-op after a normal finish
+            raw = b"".join(self.chunks)
+            self.finish("ok" if completed(self.event["provider"], raw) else "cancelled")  # no-op after a normal finish
             await self.inner.aclose()
 
         def finish(self, status, error=None):

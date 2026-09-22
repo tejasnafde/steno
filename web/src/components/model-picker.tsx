@@ -31,7 +31,7 @@ export function ModelPicker({ models, provider, model, onProvider, onModel }: Pr
   return (
     <div className="flex items-center gap-2">
       <Select items={providers} value={provider} onValueChange={(v) => v && onProvider(v)}>
-        <SelectTrigger className="w-32">
+        <SelectTrigger className="w-28" aria-label="Provider">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -44,19 +44,13 @@ export function ModelPicker({ models, provider, model, onProvider, onModel }: Pr
           </SelectGroup>
         </SelectContent>
       </Select>
-      <Combobox
-        items={items}
-        value={model}
-        onValueChange={(v) => onModel(v ?? "")}
-        inputValue={query}
-        onInputValueChange={setQuery}
-      >
-        <ComboboxInput placeholder="Model" className="w-64" />
+      <Combobox items={items} value={model} onValueChange={(v) => onModel(v ?? "")} onInputValueChange={setQuery}>
+        <ComboboxInput placeholder="Model" aria-label="Model" className="w-72 **:data-[slot=input-group-control]:font-mono **:data-[slot=input-group-control]:text-xs" />
         <ComboboxContent>
           <ComboboxEmpty>Type a model id</ComboboxEmpty>
           <ComboboxList>
             {(item: string) => (
-              <ComboboxItem key={item} value={item}>
+              <ComboboxItem key={item} value={item} className="font-mono text-xs">
                 {item}
               </ComboboxItem>
             )}

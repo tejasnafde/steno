@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowUpIcon, SquareIcon } from "lucide-react"
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
@@ -7,6 +7,11 @@ type Props = { streaming: boolean; onSend: (content: string) => void; onStop: ()
 
 export function Composer({ streaming, onSend, onStop }: Props) {
   const [text, setText] = useState("")
+  const input = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (!streaming) input.current?.focus()
+  }, [streaming])
 
   const submit = () => {
     const content = text.trim()
@@ -18,6 +23,8 @@ export function Composer({ streaming, onSend, onStop }: Props) {
   return (
     <InputGroup className="mx-auto w-full max-w-3xl">
       <InputGroupTextarea
+        ref={input}
+        autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
@@ -26,8 +33,9 @@ export function Composer({ streaming, onSend, onStop }: Props) {
             submit()
           }
         }}
-        placeholder="Message"
-        rows={2}
+        placeholder="Message. Enter sends, Shift+Enter for a new line."
+        rows={1}
+        className="max-h-48 field-sizing-content"
       />
       <InputGroupAddon align="inline-end">
         {streaming ? (

@@ -6,3 +6,4 @@ redis
 google-genai
 anthropic
 openai
+email-validator
