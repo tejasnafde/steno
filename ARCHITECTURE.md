@@ -96,7 +96,7 @@ Usage row, not just refused.
 ### Generated images
 
 Image models answer with bytes. In production `chat/images.py` uploads them to
-the public-read bucket `steno-images` under a random UUID name with a 30-day
+the public-read bucket `steno-images-teejayproject` under a random UUID name with a 30-day
 lifecycle, and the message stores a Markdown image pointing at the URL; the
 bucket is on the free tier and the URL is as guessable as a share link. Locally,
 with no bucket configured, the image is inlined as a data URI so the flow still
