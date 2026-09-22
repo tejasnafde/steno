@@ -73,6 +73,14 @@ full text here would duplicate what `chat`'s own `messages` table owns, with non
 control. `input_preview` keeps the last 300 characters of the final message, `output_preview`
 the first 300; that asymmetry is intentional, not a bug.
 
+### Bring your own key
+
+OpenAI and Anthropic have no server key. A visitor can enter their own in the
+UI; it lives in that browser's `localStorage` and travels as an `X-Key-<provider>`
+header on each request. `chat` builds an SDK client per (provider, key) for the
+call and stores nothing. The logging SDK records request bodies and timings,
+never headers, so keys do not reach `inference_logs`.
+
 ## Cancellation
 
 Two paths, both must emit a log row or Grafana under-counts cancellations.

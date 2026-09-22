@@ -65,7 +65,7 @@ function ChatApp() {
           onSignIn={signIn}
         />
         <div className="px-4 pb-4 pt-2">
-          <Composer models={chat.models} provider={chat.provider} model={chat.model} onSelect={chat.select} streaming={chat.streaming} onSend={chat.send} onStop={chat.stop} />
+          <Composer models={chat.models} provider={chat.provider} model={chat.model} onSelect={chat.select} streaming={chat.streaming} onSend={chat.send} onStop={chat.stop} onKeysSaved={chat.loadModels} />
         </div>
       </SidebarInset>
     </SidebarProvider>

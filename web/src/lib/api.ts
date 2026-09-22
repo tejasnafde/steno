@@ -11,8 +11,10 @@ export type Models = Record<string, string[]>
 export type SendBody = { content: string; provider: string; model: string | null }
 export type Me = { user: { id: string; email: string; name: string | null; picture: string | null } | null; admin: boolean }
 
+import { keyHeaders } from "@/lib/keys"
+
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(`/api${path}`, init)
+  const response = await fetch(`/api${path}`, { ...init, headers: { ...keyHeaders(), ...(init?.headers as Record<string, string> | undefined) } })
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
   return response
 }

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { ArrowUpIcon, SquareIcon } from "lucide-react"
 
+import { KeyDialog } from "@/components/key-dialog"
 import { ModelPicker, type ModelPickerProps } from "@/components/model-picker"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
 
-type Props = ModelPickerProps & { streaming: boolean; onSend: (content: string) => void; onStop: () => void }
+type Props = ModelPickerProps & { streaming: boolean; onSend: (content: string) => void; onStop: () => void; onKeysSaved: () => void }
 
-export function Composer({ streaming, onSend, onStop, ...picker }: Props) {
+export function Composer({ streaming, onSend, onStop, onKeysSaved, ...picker }: Props) {
   const [text, setText] = useState("")
   const input = useRef<HTMLTextAreaElement>(null)
 
@@ -41,6 +42,7 @@ export function Composer({ streaming, onSend, onStop, ...picker }: Props) {
       />
       <InputGroupAddon align="block-end">
         <ModelPicker {...picker} />
+        <KeyDialog onSaved={onKeysSaved} />
         <div className="ml-auto">
           {streaming ? (
             <InputGroupButton size="icon-sm" variant="destructive" onClick={onStop} aria-label="Stop generating">

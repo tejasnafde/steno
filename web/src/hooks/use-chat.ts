@@ -25,16 +25,29 @@ export function useChat(refreshKey: unknown) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streaming, setStreaming] = useState(false)
   const controller = useRef<AbortController | null>(null)
+  const providerRef = useRef(provider)
+  providerRef.current = provider
 
   const refreshConversations = useCallback(() => api.conversations().then(setConversations), [])
 
   const patch = (id: Message["id"], change: Partial<Message> | ((m: Message) => Partial<Message>)) =>
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...(typeof change === "function" ? change(m) : change) } : m)))
 
+  // Called at start and again after the visitor saves their own keys, which can add providers.
+  const loadModels = useCallback(async () => {
+    const m = await api.models()
+    setModels(m)
+    const first = Object.keys(m)[0]
+    if (first && !(providerRef.current in m)) {
+      setProvider(first)
+      setModel(m[first][0] ?? "")
+    }
+  }, [])
+
   useEffect(() => {
     api.models().then((m) => {
-      const first = Object.keys(m)[0]
       setModels(m)
+      const first = Object.keys(m)[0]
       if (first) {
         setProvider(first)
         setModel(m[first][0] ?? "")
@@ -149,5 +162,5 @@ export function useChat(refreshKey: unknown) {
     }
   }
 
-  return { models, provider, model, select, conversations, currentId, messages, streaming, open, startNew, rename, archive, remove, fork, send, resend, share, unshare, stop }
+  return { models, loadModels, provider, model, select, conversations, currentId, messages, streaming, open, startNew, rename, archive, remove, fork, send, resend, share, unshare, stop }
 }

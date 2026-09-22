@@ -76,7 +76,7 @@ OpenAI, Groq) and the PII redaction regexes.
 
 | Item | Status |
 |---|---|
-| Multi-provider | Done: Gemini, Groq (open-weight model), OpenAI, and an Anthropic adapter. |
+| Multi-provider | Done: Gemini and Groq (open-weight) with server keys; OpenAI and Anthropic with the visitor's own key, entered in the UI, kept in the browser, sent per request, never stored. |
 | Streaming | Done, for all four providers. |
 | Latency / throughput / error dashboards | Done, Grafana reading Postgres directly. |
 | Docker Compose, one command | Done: `docker compose up --build`. |

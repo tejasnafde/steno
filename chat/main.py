@@ -5,7 +5,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -60,9 +60,14 @@ class Truncate(BaseModel):
     after: int  # keep messages with id <= after
 
 
+def visitor_keys(request: Request) -> dict[str, str]:
+    """Bring-your-own keys travel as X-Key-<provider> headers, straight from the browser's localStorage. Never stored."""
+    return {p: v for p in providers.BYOK if (v := request.headers.get(f"x-key-{p}", "").strip())}
+
+
 @app.get("/api/models")
-async def list_models():
-    return {p: await providers.list_models(p) for p in providers.configured()}
+async def list_models(keys: dict = Depends(visitor_keys)):
+    return {p: await providers.list_models(p, keys.get(p)) for p in providers.available(keys)}
 
 
 @app.get("/api/conversations")
@@ -183,9 +188,10 @@ async def make_title(cid: uuid.UUID, prompt: str, reply: str) -> None:
 
 
 @app.post("/api/conversations/{cid}/messages")
-async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer)):
-    if body.provider not in providers.PROVIDERS:
-        raise HTTPException(400, "unknown provider")
+async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer), keys: dict = Depends(visitor_keys)):
+    if body.provider not in providers.available(keys):
+        raise HTTPException(400, f"no API key for {body.provider}")
+    key = keys.get(body.provider)
     conversation = await owned(cid, v)
     model = body.model or providers.DEFAULT_MODEL[body.provider]
     first_turn = conversation["title"] is None
@@ -201,7 +207,7 @@ async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer)):
         parts = []
         try:
             with steno.session(str(cid)):
-                async for delta in providers.stream(body.provider, model, history):
+                async for delta in providers.stream(body.provider, model, history, key):
                     parts.append(delta)
                     yield delta
         except Exception as e:

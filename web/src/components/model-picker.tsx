@@ -22,7 +22,7 @@ export type ModelPickerProps = {
   onSelect: (provider: string, model: string) => void
 }
 
-const LABELS: Record<string, string> = { google: "Gemini", groq: "Groq", openai: "OpenAI", anthropic: "Anthropic" }
+const LABELS: Record<string, string> = { google: "Gemini", groq: "Groq", openai: "OpenAI (your key)", anthropic: "Anthropic (your key)" }
 type Item = { provider: string; id: string }
 type Group = { value: string; items: Item[] }
 
