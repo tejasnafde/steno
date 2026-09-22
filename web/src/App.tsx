@@ -51,9 +51,10 @@ function ChatApp() {
         onShare={chat.share}
         onUnshare={chat.unshare}
         onSignIn={signIn}
+        onSignOut={auth.signOut}
       />
       <SidebarInset className="h-svh">
-        <SiteHeader title={title} streaming={chat.streaming} me={auth.me} onSignIn={signIn} onSignOut={auth.signOut} />
+        <SiteHeader title={title} streaming={chat.streaming} />
         <Chat
           messages={chat.messages}
           streaming={chat.streaming}

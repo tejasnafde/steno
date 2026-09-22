@@ -1,13 +1,15 @@
 import { useState } from "react"
-import { ArchiveIcon, ArchiveRestoreIcon, DownloadIcon, Link2Icon, Link2OffIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, ChartLineIcon, ChevronsUpDownIcon, DownloadIcon, Link2Icon, Link2OffIcon, LogOutIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -41,11 +43,12 @@ type Props = {
   onShare: (id: string) => Promise<string>
   onUnshare: (id: string) => void
   onSignIn: () => void
+  onSignOut: () => void
 }
 
 const BUCKETS = ["Today", "Yesterday", "Previous 7 days", "Older"] as const
 
-export function ConversationList({ conversations, currentId, me, onOpen, onNew, onRename, onArchive, onDelete, onShare, onUnshare, onSignIn }: Props) {
+export function ConversationList({ conversations, currentId, me, onOpen, onNew, onRename, onArchive, onDelete, onShare, onUnshare, onSignIn, onSignOut }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState("")
   const [showArchived, setShowArchived] = useState(false)
@@ -193,17 +196,52 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
           </>
         )}
       </SidebarContent>
-      <SidebarFooter className="border-t text-xs text-muted-foreground">
+      <SidebarFooter className="border-t">
         {me?.user ? (
-          <span className="truncate">Saved to {me.user.email}</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<SidebarMenuButton size="lg" aria-label="Account" className="data-open:bg-sidebar-accent" />}
+            >
+              <Avatar className="size-8">
+                <AvatarImage src={me.user.picture ?? undefined} alt="" />
+                <AvatarFallback>{(me.user.name ?? me.user.email).slice(0, 1).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
+                <span className="truncate text-sm font-medium">{me.user.name ?? me.user.email}</span>
+                <span className="truncate text-xs text-muted-foreground">{me.user.email}</span>
+              </span>
+              <ChevronsUpDownIcon className="text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-(--anchor-width) min-w-56">
+              <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">{me.user.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {me.admin && (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem render={<a href="/admin/" target="_blank" rel="noreferrer" />}>
+                      <ChartLineIcon />
+                      Dashboards
+                    </DropdownMenuItem>
+                    <DropdownMenuItem render={<a href="/admin/access" />}>
+                      <ShieldIcon />
+                      Dashboard access
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={onSignOut}>
+                  <LogOutIcon />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
-          <span>
-            Conversations stay in this browser.{" "}
-            <button type="button" className="underline underline-offset-4 hover:text-foreground" onClick={onSignIn}>
-              Sign in
-            </button>{" "}
-            to keep them on every device.
-          </span>
+          <Button variant="outline" onClick={onSignIn} disabled={me === null}>
+            Sign in
+          </Button>
         )}
       </SidebarFooter>
     </Sidebar>
