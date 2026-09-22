@@ -77,9 +77,10 @@ considerations, and failure handling assumptions.
 
 `deploy/deploy.sh` ships the working tree to a GCE VM over `gcloud compute ssh` and
 runs `docker compose -f docker-compose.yml -f deploy/compose.prod.yml up -d --build`.
-It reads a local `.env.prod` with `PUBLIC_HOST`, the `CF_ACCESS_*` variables, and
-the provider API keys. Cloudflare proxies straight to Caddy on the VM (port 443 open
-to Cloudflare's IP ranges only, self-signed origin cert, zone SSL mode `full`). `deploy/startup.sh` is the one-time VM setup (Docker plus
+It reads a local `.env.prod` with `PUBLIC_HOST`, `ADMIN_HOST`, the `CF_ACCESS_*`
+variables, and the provider API keys. Caddy serves the chat host direct with a
+Let's Encrypt certificate and the admin host behind Cloudflare Access.
+`deploy/startup.sh` is the one-time VM setup (Docker plus
 a swapfile) run from the GCE instance metadata.
 
 ## Dashboards

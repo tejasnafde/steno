@@ -7,11 +7,11 @@ services:
   chat: { restart: unless-stopped }
   grafana:
     restart: unless-stopped
-    environment: { GF_SERVER_ROOT_URL: "https://${PUBLIC_HOST}/admin/" }
+    environment: { GF_SERVER_ROOT_URL: "https://${ADMIN_HOST}/admin/" }
   caddy:
     image: caddy:2-alpine
-    ports: ["443:443"]
-    environment: { PUBLIC_HOST: "${PUBLIC_HOST}" }
+    ports: ["80:80", "443:443"]
+    environment: { PUBLIC_HOST: "${PUBLIC_HOST}", ADMIN_HOST: "${ADMIN_HOST}" }
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -204,26 +204,33 @@ Production is the same file plus the overlay, on one free-tier `e2-micro`
 GCE instance (`deploy/startup.sh` installs Docker and a 2 GB swapfile so
 the build does not OOM on a 1 GB machine). `deploy/deploy.sh` tars the
 tree to the VM over `gcloud compute ssh`, writes `.env` from a local
-`.env.prod`, and runs the compose overlay. Cloudflare proxies the hostname
-straight to a Caddy container on the VM: the GCE firewall admits port 443
-from Cloudflare's published IP ranges only, Caddy serves its own CA
-certificate (the zone runs SSL mode `full`, which accepts it), and Caddy
-routes `/admin*` to Grafana and everything else to `chat`. Grafana sits at
-`/admin/` behind Cloudflare Access with an email allowlist. The allowlist
-is editable from `/admin/access`, a page in the chat app that calls the
-Access API with a scoped token (`CF_ACCESS_*` in `.env.prod`); the page
-itself is inside the protected path, so only allowlisted users reach it,
-and it refuses to remove the caller's own address. Anonymous Viewer access
-is on in Grafana only because Access is the real auth layer in front of
-it, not because the dashboard is public.
+`.env.prod`, and runs the compose overlay. A Caddy container fronts two
+hostnames:
 
-**Why not Cloudflare Tunnel**: the first deployment used one. Measured from
-India, 40 percent of requests stalled for 5 to 17 seconds on the hop between
-Cloudflare's Mumbai colo and the US colo the tunnel was registered at, while
-the same requests measured from inside the VM took 130 to 190 ms. Direct
-proxying from the same colo to the VM's IP gave 20 of 20 requests in 0.53 to
-0.87 s. A tunnel is the better security story (no inbound port), and the
-firewall rule limited to Cloudflare's ranges recovers most of it.
+- `steno.tn07.dev` (chat) is DNS-only and served direct with a Let's
+  Encrypt certificate. Caddy proxies to `chat`, streams without buffering,
+  and 308-redirects `/admin*` and `/api/admin/*` to the admin host.
+- `steno-admin.tn07.dev` (Grafana, the allowlist page, the allowlist API)
+  is proxied by Cloudflare so Cloudflare Access can gate it with an email
+  allowlist. The zone runs SSL mode `full`, so Caddy's own CA certificate
+  is enough on that host. Anonymous Viewer access is on in Grafana only
+  because Access is the real auth layer in front of it.
+
+The allowlist is editable from `/admin/access` on the admin host, a page in
+the chat app that calls the Access API with a scoped token (`CF_ACCESS_*`
+in `.env.prod`); the page is inside the protected path, so only allowlisted
+users reach it, and it refuses to remove the caller's own address.
+
+**Why the chat host is not behind Cloudflare**: the first deployment used a
+Cloudflare Tunnel, then a proxied origin. Measured from India, requests
+through Cloudflare's Mumbai colo to the US origin stalled for 5 to 17 s on
+about 40 percent of samples over both, while the same requests measured
+from inside the VM took 130 to 190 ms and the raw path from India to the
+VM took a steady 0.8 to 1.2 s. Visitors talk to the VM directly; only the
+admin surface, used by one person, pays the Cloudflare hop for Access.
+Cost of the choice: ports 80 and 443 are open to the world, and DDoS
+protection is gone for the chat host. Cloudflare Web Analytics still
+counts visits through its beacon script.
 
 **Why not Cloud Run**: the pipeline needs a stateful Redis stream and
 Postgres regardless of where the app code runs, so a serverless target
