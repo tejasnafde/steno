@@ -93,7 +93,7 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
         >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="right">
+        <DropdownMenuContent align="start" side="right" className="min-w-52 [&_[data-slot=dropdown-menu-item]]:whitespace-nowrap">
           <DropdownMenuGroup>
             <DropdownMenuItem
               onClick={() => {
@@ -110,7 +110,7 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
             </DropdownMenuItem>
             <DropdownMenuItem render={<a href={api.exportUrl(c.id)} download />}>
               <DownloadIcon />
-              Download as Markdown
+              Download
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={async () => {
@@ -120,7 +120,7 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
               }}
             >
               <Link2Icon />
-              {c.share_token ? "Copy share link" : "Share a read-only link"}
+              {c.share_token ? "Copy share link" : "Share"}
             </DropdownMenuItem>
             {c.share_token && (
               <DropdownMenuItem
