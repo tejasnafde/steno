@@ -15,7 +15,7 @@ export function Welcome({ models, onPrompt }: Props) {
 
   return (
     <div className="flex flex-1 flex-col justify-end overflow-y-auto px-4 py-8 md:justify-center">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 [&>*]:animate-in [&>*]:fade-in-0 [&>*]:slide-in-from-bottom-2 [&>*]:fill-mode-both [&>*]:duration-300 [&>*:nth-child(2)]:delay-100 motion-reduce:[&>*]:animate-none">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Chat with any model. Every reply comes with its receipt.</h1>
           <p className="max-w-prose text-muted-foreground">

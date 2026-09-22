@@ -1,12 +1,20 @@
 import { useState } from "react"
-import { CheckIcon, CopyIcon, GitBranchIcon } from "lucide-react"
+import { CheckIcon, CopyIcon, GitBranchIcon, PencilIcon, RefreshCwIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
-type Props = { content: string; canFork: boolean; signedIn: boolean; onFork: () => void; onSignIn: () => void }
+type Props = {
+  content: string
+  signedIn: boolean
+  onSignIn: () => void
+  onFork?: () => void
+  onRetry?: () => void
+  onEdit?: () => void
+}
 
-export function MessageActions({ content, canFork, signedIn, onFork, onSignIn }: Props) {
+export function MessageActions({ content, signedIn, onSignIn, onFork, onRetry, onEdit }: Props) {
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
@@ -17,10 +25,21 @@ export function MessageActions({ content, canFork, signedIn, onFork, onSignIn }:
 
   return (
     <div className="flex items-center gap-0.5">
-      <Button variant="ghost" size="icon-xs" aria-label={copied ? "Copied" : "Copy message"} onClick={copy}>
-        {copied ? <CheckIcon /> : <CopyIcon />}
+      <Button variant="ghost" size="icon-xs" aria-label={copied ? "Copied" : "Copy message"} onClick={copy} className="relative">
+        <CopyIcon className={cn("absolute transition-[opacity,scale] duration-200", copied ? "scale-25 opacity-0" : "scale-100 opacity-100")} />
+        <CheckIcon className={cn("transition-[opacity,scale] duration-200", copied ? "scale-100 opacity-100" : "scale-25 opacity-0")} />
       </Button>
-      {canFork &&
+      {onEdit && (
+        <Button variant="ghost" size="icon-xs" aria-label="Edit and resend" onClick={onEdit}>
+          <PencilIcon />
+        </Button>
+      )}
+      {onRetry && (
+        <Button variant="ghost" size="icon-xs" aria-label="Retry with the selected model" onClick={onRetry}>
+          <RefreshCwIcon />
+        </Button>
+      )}
+      {onFork &&
         (signedIn ? (
           <Button variant="ghost" size="icon-xs" aria-label="Branch from here" onClick={onFork}>
             <GitBranchIcon />

@@ -18,6 +18,7 @@ create table conversations (
   user_id      text not null,                    -- Firebase uid, or the anonymous uid cookie before sign-in
   title        text,
   archived_at  timestamptz,
+  share_token  text unique,                      -- set when the owner shares a read-only link
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );

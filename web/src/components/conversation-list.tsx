@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { ArchiveIcon, ArchiveRestoreIcon, DownloadIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, DownloadIcon, Link2Icon, Link2OffIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -37,12 +38,14 @@ type Props = {
   onRename: (id: string, title: string) => void
   onArchive: (id: string, archived: boolean) => void
   onDelete: (id: string) => void
+  onShare: (id: string) => Promise<string>
+  onUnshare: (id: string) => void
   onSignIn: () => void
 }
 
 const BUCKETS = ["Today", "Yesterday", "Previous 7 days", "Older"] as const
 
-export function ConversationList({ conversations, currentId, me, onOpen, onNew, onRename, onArchive, onDelete, onSignIn }: Props) {
+export function ConversationList({ conversations, currentId, me, onOpen, onNew, onRename, onArchive, onDelete, onShare, onUnshare, onSignIn }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState("")
   const [showArchived, setShowArchived] = useState(false)
@@ -100,6 +103,27 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
               <DownloadIcon />
               Download as Markdown
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const url = await onShare(c.id)
+                await navigator.clipboard.writeText(url)
+                toast.success("Link copied. Anyone with it can read this conversation.")
+              }}
+            >
+              <Link2Icon />
+              {c.share_token ? "Copy share link" : "Share a read-only link"}
+            </DropdownMenuItem>
+            {c.share_token && (
+              <DropdownMenuItem
+                onClick={() => {
+                  onUnshare(c.id)
+                  toast("Sharing turned off")
+                }}
+              >
+                <Link2OffIcon />
+                Stop sharing
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>

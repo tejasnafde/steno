@@ -1,5 +1,6 @@
 import asyncio
 import os
+import secrets
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -55,6 +56,10 @@ class Fork(BaseModel):
     upto: int
 
 
+class Truncate(BaseModel):
+    after: int  # keep messages with id <= after
+
+
 @app.get("/api/models")
 async def list_models():
     return {p: await providers.list_models(p) for p in providers.configured()}
@@ -63,7 +68,7 @@ async def list_models():
 @app.get("/api/conversations")
 async def list_conversations(v: Viewer = Depends(viewer)):
     return await q(
-        "select id, title, archived_at, created_at, updated_at from conversations where user_id=%s order by updated_at desc limit 200", v.user_id
+        "select id, title, archived_at, share_token, created_at, updated_at from conversations where user_id=%s order by updated_at desc limit 200", v.user_id
     )
 
 
@@ -79,7 +84,7 @@ async def patch_conversation(cid: uuid.UUID, body: Patch, v: Viewer = Depends(vi
         await q("update conversations set title=left(%s, 120) where id=%s", body.title.strip() or None, cid)
     if body.archived is not None:
         await q("update conversations set archived_at=%s where id=%s", datetime.now(timezone.utc) if body.archived else None, cid)
-    return await q("select id, title, archived_at, created_at, updated_at from conversations where id=%s", cid, one=True)
+    return await q("select id, title, archived_at, share_token, created_at, updated_at from conversations where id=%s", cid, one=True)
 
 
 @app.delete("/api/conversations/{cid}", status_code=204)
@@ -105,6 +110,46 @@ async def fork_conversation(cid: uuid.UUID, body: Fork, v: Viewer = Depends(view
         "insert into messages (conversation_id, role, content, model) select %s, role, content, model from messages where conversation_id=%s and id<=%s order by id",
         new["id"], cid, body.upto,
     )
+    return new
+
+
+@app.post("/api/conversations/{cid}/truncate", status_code=204)
+async def truncate_conversation(cid: uuid.UUID, body: Truncate, v: Viewer = Depends(viewer)):
+    """Drop everything after a message. Retry and edit both start here, then send again."""
+    await owned(cid, v)
+    await q("delete from messages where conversation_id=%s and id > %s", cid, body.after)
+
+
+@app.post("/api/conversations/{cid}/share")
+async def share_conversation(cid: uuid.UUID, v: Viewer = Depends(viewer)):
+    await owned(cid, v)
+    row = await q("update conversations set share_token=coalesce(share_token, %s) where id=%s returning share_token", secrets.token_urlsafe(12), cid, one=True)
+    return {"token": row["share_token"]}
+
+
+@app.delete("/api/conversations/{cid}/share", status_code=204)
+async def unshare_conversation(cid: uuid.UUID, v: Viewer = Depends(viewer)):
+    await owned(cid, v)
+    await q("update conversations set share_token=null where id=%s", cid)
+
+
+@app.get("/api/shared/{token}")
+async def shared_conversation(token: str):
+    src = await q("select id, title from conversations where share_token=%s", token, one=True)
+    if not src:
+        raise HTTPException(404)
+    messages = await q("select id, role, content, model, created_at from messages where conversation_id=%s order by id", src["id"])
+    return {"title": src["title"], "messages": messages}
+
+
+@app.post("/api/shared/{token}/fork", status_code=201)
+async def fork_shared(token: str, v: Viewer = Depends(viewer)):
+    """Continue someone else's shared conversation in your own account (or this browser)."""
+    src = await q("select id, title from conversations where share_token=%s", token, one=True)
+    if not src:
+        raise HTTPException(404)
+    new = await q("insert into conversations (user_id, title) values (%s, %s) returning id", v.user_id, src["title"], one=True)
+    await q("insert into messages (conversation_id, role, content, model) select %s, role, content, model from messages where conversation_id=%s order by id", new["id"], src["id"])
     return new
 
 
@@ -181,7 +226,8 @@ async def send_message(cid: uuid.UUID, body: Send, v: Viewer = Depends(viewer)):
 static = os.path.join(os.path.dirname(__file__), "static")  # web/dist, copied in by the Dockerfile
 if os.path.isdir(static):
     @app.get("/admin/access")
-    async def access_page():  # the SPA handles this path; every other /admin path is Grafana
+    @app.get("/s/{token}")
+    async def spa_page(token: str = ""):  # the SPA handles these paths; every other /admin path is Grafana
         return FileResponse(os.path.join(static, "index.html"))
 
     app.mount("/", StaticFiles(directory=static, html=True))

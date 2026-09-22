@@ -1,0 +1,5 @@
+[Unit]
+Description=Steno: pull the latest image and restart changed services
+[Service]
+Type=oneshot
+ExecStart=/home/tejas/app/deploy/steno-pull.sh

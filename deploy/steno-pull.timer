@@ -1,0 +1,7 @@
+[Unit]
+Description=Steno: check for a new image every two minutes
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+[Install]
+WantedBy=timers.target

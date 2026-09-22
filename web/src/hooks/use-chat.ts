@@ -94,6 +94,28 @@ export function useChat(refreshKey: unknown) {
 
   const stop = () => controller.current?.abort()
 
+  // Retry and edit are the same move: drop everything from a user message on, then send again.
+  const resend = async (userMessageId: number, content: string) => {
+    if (!currentId) return
+    const idx = messages.findIndex((m) => m.id === userMessageId)
+    if (idx < 0) return
+    const before = messages[idx - 1]
+    await api.truncate(currentId, typeof before?.id === "number" ? before.id : 0)
+    setMessages((prev) => prev.slice(0, idx))
+    await send(content)
+  }
+
+  const share = async (id: string) => {
+    const { token } = await api.share(id)
+    refreshConversations()
+    return `${location.origin}/s/${token}`
+  }
+
+  const unshare = async (id: string) => {
+    await api.unshare(id)
+    refreshConversations()
+  }
+
   const send = async (content: string) => {
     let id = currentId
     if (!id) {
@@ -127,5 +149,5 @@ export function useChat(refreshKey: unknown) {
     }
   }
 
-  return { models, provider, model, select, conversations, currentId, messages, streaming, open, startNew, rename, archive, remove, fork, send, stop }
+  return { models, provider, model, select, conversations, currentId, messages, streaming, open, startNew, rename, archive, remove, fork, send, resend, share, unshare, stop }
 }

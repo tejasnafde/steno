@@ -15,6 +15,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { Me } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 export const APP_NAME = "Steno"
 
@@ -43,8 +44,9 @@ export function SiteHeader({ title, streaming, me, onSignIn, onSignOut }: Props)
             Recording
           </span>
         )}
-        <Button variant="ghost" size="icon-sm" aria-label="Toggle theme" onClick={() => setTheme(dark ? "light" : "dark")}>
-          {dark ? <SunIcon /> : <MoonIcon />}
+        <Button variant="ghost" size="icon-sm" aria-label="Toggle theme" onClick={() => setTheme(dark ? "light" : "dark")} className="relative">
+          <SunIcon className={cn("absolute transition-[opacity,scale,rotate] duration-300", dark ? "scale-100 opacity-100" : "scale-25 opacity-0 rotate-90")} />
+          <MoonIcon className={cn("transition-[opacity,scale,rotate] duration-300", dark ? "scale-25 opacity-0 -rotate-90" : "scale-100 opacity-100")} />
         </Button>
         {user ? (
           <DropdownMenu>

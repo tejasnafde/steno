@@ -1,4 +1,4 @@
-export type Conversation = { id: string; title: string | null; archived_at: string | null; created_at: string; updated_at: string }
+export type Conversation = { id: string; title: string | null; archived_at: string | null; share_token: string | null; created_at: string; updated_at: string }
 export type Message = {
   id: number | string
   role: "user" | "assistant"
@@ -31,6 +31,11 @@ export const api = {
   deleteConversation: (id: string) => request(`/conversations/${id}`, { method: "DELETE" }),
   fork: (id: string, upto: number) => request(`/conversations/${id}/fork`, json({ upto })).then((r) => r.json() as Promise<{ id: string }>),
   exportUrl: (id: string) => `/api/conversations/${id}/export`,
+  truncate: (id: string, after: number) => request(`/conversations/${id}/truncate`, json({ after })),
+  share: (id: string) => request(`/conversations/${id}/share`, { method: "POST" }).then((r) => r.json() as Promise<{ token: string }>),
+  unshare: (id: string) => request(`/conversations/${id}/share`, { method: "DELETE" }),
+  shared: (token: string) => request(`/shared/${token}`).then((r) => r.json() as Promise<{ title: string | null; messages: Message[] }>),
+  forkShared: (token: string) => request(`/shared/${token}/fork`, { method: "POST" }).then((r) => r.json() as Promise<{ id: string }>),
   messages: (id: string) => request(`/conversations/${id}/messages`).then((r) => r.json() as Promise<Message[]>),
   send: (id: string, body: SendBody, signal: AbortSignal) => request(`/conversations/${id}/messages`, { ...json(body), signal }),
   allowlist: () => request("/admin/allowlist").then((r) => r.json() as Promise<{ emails: string[]; me: string }>),

@@ -4,6 +4,7 @@ import { AccessPage } from "@/components/access-page"
 import { Chat } from "@/components/chat"
 import { Composer } from "@/components/composer"
 import { ConversationList } from "@/components/conversation-list"
+import { SharedPage } from "@/components/shared-page"
 import { APP_NAME, SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/use-auth"
@@ -11,6 +12,8 @@ import { useChat } from "@/hooks/use-chat"
 
 export function App() {
   if (location.pathname === "/admin/access") return <AccessPage />
+  const shared = location.pathname.match(/^\/s\/([\w-]+)$/)
+  if (shared) return <SharedPage token={shared[1]} />
   return <ChatApp />
 }
 
@@ -45,6 +48,8 @@ function ChatApp() {
         onRename={chat.rename}
         onArchive={chat.archive}
         onDelete={chat.remove}
+        onShare={chat.share}
+        onUnshare={chat.unshare}
         onSignIn={signIn}
       />
       <SidebarInset className="h-svh">
@@ -56,6 +61,7 @@ function ChatApp() {
           signedIn={Boolean(auth.me?.user)}
           onPrompt={chat.send}
           onFork={chat.fork}
+          onResend={chat.resend}
           onSignIn={signIn}
         />
         <div className="px-4 pb-4 pt-2">
