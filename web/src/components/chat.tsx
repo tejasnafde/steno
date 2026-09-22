@@ -2,6 +2,7 @@ import { useState } from "react"
 
 import { Markdown } from "@/components/markdown"
 import { MessageActions } from "@/components/message-actions"
+import { Waiting } from "@/components/waiting"
 import { Welcome } from "@/components/welcome"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -15,7 +16,6 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
-import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import type { Message as ChatMessage } from "@/lib/api"
 import { seconds } from "@/lib/format"
@@ -104,9 +104,7 @@ export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend
                           <Bubble variant="ghost" className={cn("max-w-full", m.error && m.content === "" && "hidden")}>
                             <BubbleContent className="w-full">
                               {live && m.content === "" ? (
-                                <span role="status" className="flex items-center gap-2 text-muted-foreground">
-                                  <Spinner /> Waiting for the first token
-                                </span>
+                                <Waiting model={m.model} />
                               ) : (
                                 <Markdown>{m.content}</Markdown>
                               )}
