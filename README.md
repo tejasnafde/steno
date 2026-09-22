@@ -13,6 +13,18 @@ browser -> chat (FastAPI, streamed responses)
            ingest (FastAPI)  --XADD-->  Redis stream  --XREADGROUP-->  worker  -->  Postgres  -->  Grafana
 ```
 
+## Demo
+
+Live at https://steno.tn07.dev. Sign-in is optional; conversations stay in the browser until you do.
+
+| Chat | Dashboard |
+|---|---|
+| ![Conversation with model and timing footer](docs/conversation.png) | ![Grafana dashboard: latency, throughput, errors, usage](docs/dashboard.png) |
+
+| Welcome | Mobile |
+|---|---|
+| ![Welcome](docs/welcome.png) | ![Mobile](docs/mobile.png) |
+
 ## Quickstart
 
 ```sh
@@ -69,6 +81,19 @@ The chat is free and public, so it is capped. Per IP: 10 messages a minute. Per 
 20 messages and 60k tokens, signed-in users 100 messages and 400k tokens (`BURST_PER_MINUTE`, `DAILY_*` in
 `.env`). Requests on a visitor's own API key skip the daily caps. Rejections are stored in `quota_hits` and
 charted on the dashboard's Usage row next to messages and tokens per user.
+
+## Tradeoffs
+
+- Instrumentation at the httpx layer under the official SDKs, not a wrapper per SDK: one parser for four wire formats, zero logging code at call sites, and it also catches `httpx2`, the fork the Anthropic SDK moved to.
+- Previews, not full prompts, in the log store. Redacted and capped at 300 characters. Full text lives in `messages`, which the chat app owns.
+- Redis Streams over Kafka or Pub/Sub: one container, consumer groups for horizontal workers, and it keeps `docker compose up` a single command.
+- Grafana reads Postgres directly. No Prometheus and no metrics code; the tradeoff is that panel queries compete with the worker once the table is large.
+- One free-tier VM, and the chat host is not behind Cloudflare: measured from India, Cloudflare's Mumbai to us-central1 path stalled 5 to 17 s on 40 percent of requests, the raw path did not. Cost of that: no DDoS shield in front of the chat.
+- The SDK drops events after three failed flushes. Nothing blocks the user's request; an ingest outage loses telemetry, not chats.
+
+## With more time
+
+Persist and retry the SDK's dropped batches; expose the drop counter and the ingest reject count as metrics; a price table per model so the Usage row shows money, not tokens; partition `inference_logs` by `started_at` before retention deletes get expensive; integration tests for the ingest path; message attachments. Details and reasoning in `ARCHITECTURE.md`.
 
 ## Tests
 
