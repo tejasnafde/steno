@@ -1,6 +1,5 @@
 import { ChevronRightIcon } from "lucide-react"
 
-import type { Models } from "@/lib/api"
 
 const PROMPTS = [
   "Explain Redis consumer groups in three short bullets.",
@@ -8,21 +7,13 @@ const PROMPTS = [
   "Write a Python function that redacts email addresses, with a docstring.",
 ]
 
-type Props = { models: Models; onPrompt: (content: string) => void }
+type Props = { onPrompt: (content: string) => void }
 
-export function Welcome({ models, onPrompt }: Props) {
-  const count = Object.values(models).reduce((n, m) => n + m.length, 0)
-
+export function Welcome({ onPrompt }: Props) {
   return (
     <div className="flex flex-1 flex-col justify-end overflow-y-auto px-4 py-8 md:justify-center">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 [&>*]:animate-in [&>*]:fade-in-0 [&>*]:slide-in-from-bottom-2 [&>*]:fill-mode-both [&>*]:duration-300 [&>*:nth-child(2)]:delay-100 motion-reduce:[&>*]:animate-none">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Chat with any model. Every reply comes with its receipt.</h1>
-          <p className="max-w-prose text-muted-foreground">
-            Pick from {count || "dozens of"} models across Gemini, Groq and OpenAI. Each answer shows which model wrote it, how long the first
-            token took, and how long the whole reply took. Switch models mid-conversation whenever you like.
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Chat with any model. Every reply comes with its receipt.</h1>
         <div className="flex flex-col">
           <span className="pb-2 text-xs text-muted-foreground">Start with one of these</span>
           {PROMPTS.map((p) => (

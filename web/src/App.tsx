@@ -58,7 +58,6 @@ function ChatApp() {
         <Chat
           messages={chat.messages}
           streaming={chat.streaming}
-          models={chat.models}
           signedIn={Boolean(auth.me?.user)}
           onPrompt={chat.send}
           onFork={chat.fork}

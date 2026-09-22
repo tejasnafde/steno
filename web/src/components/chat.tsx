@@ -16,14 +16,13 @@ import {
 } from "@/components/ui/message-scroller"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
-import type { Message as ChatMessage, Models } from "@/lib/api"
+import type { Message as ChatMessage } from "@/lib/api"
 import { seconds } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type Props = {
   messages: ChatMessage[]
   streaming: boolean
-  models: Models
   signedIn: boolean
   onPrompt: (content: string) => void
   onFork: (upto: number) => void
@@ -31,10 +30,10 @@ type Props = {
   onSignIn: () => void
 }
 
-export function Chat({ messages, streaming, models, signedIn, onPrompt, onFork, onResend, onSignIn }: Props) {
+export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend, onSignIn }: Props) {
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null)
 
-  if (messages.length === 0) return <Welcome models={models} onPrompt={onPrompt} />
+  if (messages.length === 0) return <Welcome onPrompt={onPrompt} />
 
   const last = messages[messages.length - 1]
   const userBefore = (i: number) => {
