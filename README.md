@@ -90,14 +90,13 @@ considerations, and failure handling assumptions.
 
 ## Deploy
 
-`deploy/deploy.sh` ships the working tree to a GCE VM over `gcloud compute ssh` and
-runs `docker compose -f docker-compose.yml -f deploy/compose.prod.yml up -d --build`.
-It reads a local `.env.prod` with the provider API keys, `PUBLIC_HOST`,
-`ADMIN_EMAILS`, and `SESSION_SECRET`. Caddy serves one hostname,
-`steno.tn07.dev`, DNS-only with a Let's Encrypt certificate; `/admin*` goes
-through a `forward_auth` check against the chat app before Caddy proxies it
-to Grafana. `deploy/startup.sh` is the one-time VM setup (Docker plus
-a swapfile) run from the GCE instance metadata.
+A push to `main` builds the image in GitHub Actions and publishes it to Artifact
+Registry (`.github/workflows/deploy.yml`, auth by Workload Identity Federation, no
+stored secrets). On the VM, `deploy/steno-pull.timer` pulls the new image every two
+minutes and restarts what changed. Nothing is built on the VM. `deploy/deploy.sh`
+ships only config (`docker-compose.yml`, `deploy/`, `db/`, `grafana/`, `.env`) and
+is needed only when those change. `.env.prod` holds the provider keys, `PUBLIC_HOST`,
+`ADMIN_EMAILS` and `SESSION_SECRET`.
 
 ## Dashboards
 

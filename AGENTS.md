@@ -34,11 +34,19 @@ first token and total per reply. Grafana has p50/p95 by model.
 - One flat module per concern. Do not add packages, base classes, or config layers for one use.
 - Commit messages: plain imperative subject, no AI attribution trailers.
 
+## Release
+
+Push to `main`. GitHub Actions builds and publishes the image; the VM pulls it within two minutes
+(`deploy/steno-pull.timer`). Run `deploy/deploy.sh` only when compose, Caddyfile, schema, dashboards or `.env` change.
+A schema change needs `docker compose down -v` on the VM first; there are no migrations.
+
 ## Behaviour worth knowing
 
 - Cancel: the browser aborts the fetch, Starlette cancels the generator, the SDK closes the response, `TeeStream.aclose` logs `cancelled`, and the partial answer is saved under `asyncio.shield`.
 - A cancel before the first byte surfaces as `CancelledError` inside `send`, not in the stream. Both paths emit.
 - Gemini reports cumulative `usageMetadata` on every chunk; the parser keeps the last one.
+- Retry and edit are one operation: `POST .../truncate {after}` drops later messages, then the client sends again.
+- Share links: `share_token` on the conversation; `/s/<token>` and `/api/shared/<token>` are public, `DELETE .../share` revokes.
 - The worker starts reading at `"0"` to replay its own pending entries, then switches to `">"`.
 - The `session` cookie is `uid|email|issued_at` plus a `.`-separated HMAC-SHA256 signature over that payload with `SESSION_SECRET`. `verify()` checks the signature, then checks the 30-day window against `issued_at`; there is no separate expiry field.
 - Caddy's `forward_auth` calls `GET /api/admin/check` before proxying `/admin*`. Anonymous gets a 302 to `/?signin=1&next=<uri>` so the SPA can open sign-in and return; signed in but not on `admin_allowlist` gets 403; allowlisted gets 200 and Caddy proxies through.

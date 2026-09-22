@@ -235,6 +235,17 @@ where the app code runs, so a serverless target still needs a managed Redis and 
 it, at higher cost than one VM running all five containers. At this traffic, a free-tier VM is
 cheaper and no less correct.
 
+### Build and release
+
+GitHub Actions builds the image on every push to `main` (Workload Identity
+Federation, no stored secrets) and pushes it to Artifact Registry with a
+cleanup policy that keeps the last three versions. On the VM a systemd timer
+runs `deploy/steno-pull.sh` every two minutes: it logs in to the registry with
+the VM's own service account, pulls, and `compose up -d` recreates only the
+containers whose image changed. The VM never builds: an e2-micro spent 4 to
+17 minutes per build and served 502s while doing it. `deploy/deploy.sh` ships
+config only (compose, Caddyfile, schema, dashboards, `.env`).
+
 ## What I would do with more time
 
 1. Persist the SDK's dropped batches to disk and retry them: the biggest real gap above.
@@ -252,5 +263,4 @@ cheaper and no less correct.
 7. Message editing and retry: today a bad turn can only be forked away from, not corrected in
    place.
 8. Public share links for a conversation, read-only, no sign-in.
-9. Build the Docker image off-box (CI or Cloud Build) instead of on the `e2-micro`, which needs
    the swapfile only to survive its own build.
