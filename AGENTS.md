@@ -16,7 +16,14 @@ Small codebase, keep it that way. Read this before editing.
 docker compose up --build          # everything
 python -m pytest -q                # unit tests (needs .venv with requirements + pytest)
 docker compose exec postgres psql -U app -d app
+docker compose logs -f chat ingest worker          # request logs (uvicorn) and worker batch counts
+gcloud --configuration=personal compute ssh llmlog --zone us-central1-a -- \
+  'cd app && sudo docker compose -f docker-compose.yml -f deploy/compose.prod.yml logs -f --tail 100 chat'
 ```
+
+Latency: `inference_logs.latency_ms` and `ttft_ms` are provider-side numbers measured at the httpx layer. The chat
+service adds about 20 ms before the first byte (three Postgres queries, about 1 ms). The UI shows client-measured
+first token and total per reply. Grafana has p50/p95 by model.
 
 ## Conventions
 
