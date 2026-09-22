@@ -226,8 +226,12 @@ Cloudflare Tunnel, then a proxied origin. Measured from India, requests
 through Cloudflare's Mumbai colo to the US origin stalled for 5 to 17 s on
 about 40 percent of samples over both, while the same requests measured
 from inside the VM took 130 to 190 ms and the raw path from India to the
-VM took a steady 0.8 to 1.2 s. Visitors talk to the VM directly; only the
-admin surface, used by one person, pays the Cloudflare hop for Access.
+VM took a steady 0.8 to 1.2 s. Direct proxying from the same colo also returned 522 connection timeouts
+on 10 to 30 percent of attempts, with no SYN reaching the VM (packet
+capture) and a 0.0.0.0/0 firewall rule in place, so this is Cloudflare's
+path, not the origin. Visitors talk to the VM directly; only the admin
+surface, used by one person, pays the Cloudflare hop for Access and
+inherits that flakiness.
 Cost of the choice: ports 80 and 443 are open to the world, and DDoS
 protection is gone for the chat host. Cloudflare Web Analytics still
 counts visits through its beacon script.
