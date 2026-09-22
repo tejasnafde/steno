@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { api, type Conversation, type Me } from "@/lib/api"
 import { dateBucket } from "@/lib/format"
@@ -142,8 +143,9 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
 
   return (
     <Sidebar>
-      <SidebarHeader className="h-12 justify-center border-b">
-        <Button variant="outline" size="sm" onClick={onNew}>
+      <SidebarHeader className="h-12 flex-row items-center gap-2 border-b">
+        <SidebarTrigger />
+        <Button variant="outline" size="sm" className="flex-1" onClick={onNew}>
           <PlusIcon data-icon="inline-start" />
           New conversation
         </Button>

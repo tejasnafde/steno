@@ -3,7 +3,7 @@ import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 export const APP_NAME = "Steno"
@@ -13,11 +13,17 @@ type Props = { title: string | null; streaming: boolean }
 export function SiteHeader({ title, streaming }: Props) {
   const { theme, setTheme } = useTheme()
   const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
+  const sidebar = useSidebar()
+  const sidebarHidden = sidebar.isMobile || sidebar.state === "collapsed" // the toggle lives in the sidebar itself while it is open
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b px-3">
-      <SidebarTrigger />
-      <Separator orientation="vertical" className="data-vertical:h-4 data-vertical:self-center" />
+      {sidebarHidden && (
+        <>
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="data-vertical:h-4 data-vertical:self-center" />
+        </>
+      )}
       <span className="font-semibold tracking-tight">{APP_NAME}</span>
       {title && (
         <>
