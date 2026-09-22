@@ -3,11 +3,8 @@ steno observes these calls at the httpx layer, so nothing here knows about loggi
 import asyncio
 import os
 
-# Imported at startup on purpose: on a shared-core VM these imports take seconds, and a lazy import
-# inside the first request made the first visitor after a restart wait 15 to 25 s.
-from anthropic import AsyncAnthropic
-from google import genai
-from openai import AsyncOpenAI
+# SDKs are imported inside the provider functions and pulled in at startup by warm() for the providers
+# that have a key. On a 1 GB shared-core VM an unused SDK is 30 MB of resident memory that ends up in swap.
 
 DEFAULT_MODEL = {
     "google": "gemini-3.5-flash-lite",  # lowest time to first token of the family (measured 0.8 to 1.9 s)
@@ -27,6 +24,7 @@ def client(name, factory):
 
 
 async def google(model, messages):
+    from google import genai
     c = client("google", lambda: genai.Client(api_key=os.environ["GEMINI_API_KEY"]))
     contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]} for m in messages]
     async for chunk in await c.aio.models.generate_content_stream(model=model, contents=contents):
@@ -35,6 +33,7 @@ async def google(model, messages):
 
 
 async def anthropic(model, messages):
+    from anthropic import AsyncAnthropic
     c = client("anthropic", AsyncAnthropic)
     async with c.messages.stream(model=model, max_tokens=16000, messages=messages) as s:
         async for text in s.text_stream:
@@ -43,6 +42,7 @@ async def anthropic(model, messages):
 
 def openai_compatible(name, base_url=None, key_env="OPENAI_API_KEY"):
     async def generate(model, messages):
+        from openai import AsyncOpenAI
         c = client(name, lambda: AsyncOpenAI(base_url=base_url, api_key=os.environ[key_env]))
         stream = await c.chat.completions.create(model=model, messages=messages, stream=True, stream_options={"include_usage": True})
         async for chunk in stream:
@@ -71,13 +71,16 @@ async def list_models(provider: str) -> list[str]:
     ids: list[str] = []
     try:
         if provider == "google":
+            from google import genai
             c = client("google", lambda: genai.Client(api_key=os.environ["GEMINI_API_KEY"]))
             async for m in await c.aio.models.list():
                 if "generateContent" in (m.supported_actions or []):
                     ids.append(m.name.removeprefix("models/"))
         elif provider == "anthropic":
+            from anthropic import AsyncAnthropic
             ids = [m.id async for m in client("anthropic", AsyncAnthropic).models.list()]
         else:
+            from openai import AsyncOpenAI
             factory = lambda: AsyncOpenAI(base_url="https://api.groq.com/openai/v1" if provider == "groq" else None, api_key=os.environ[KEY_ENV[provider]])
             ids = [m.id async for m in client(provider, factory).models.list()]
     except Exception:
@@ -93,7 +96,7 @@ def configured() -> list[str]:
 
 
 def warm() -> None:
-    """Fetch every configured provider's model list in the background so the first visitor does not pay for it."""
+    """Import each configured SDK and fetch its model list at startup, so the first visitor does not pay for either."""
     for p in configured():
         asyncio.create_task(list_models(p))
 
