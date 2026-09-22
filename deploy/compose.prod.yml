@@ -10,7 +10,7 @@ services:
     environment: { GF_SERVER_ROOT_URL: "https://${PUBLIC_HOST}/admin/" }
   cloudflared:
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate --protocol http2 run  # QUIC flaps on GCE (MTU 1460); TCP is steady
     environment: { TUNNEL_TOKEN: "${TUNNEL_TOKEN}" }
     restart: unless-stopped
     depends_on: [chat, grafana]

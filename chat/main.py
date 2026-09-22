@@ -116,7 +116,12 @@ async def send_message(cid: uuid.UUID, body: Send, uid: uuid.UUID = Depends(user
                     "insert into messages (conversation_id, role, content, model) values (%s, 'assistant', %s, %s)", cid, "".join(parts), model,
                 ))
 
-    return StreamingResponse(generate(), media_type="text/plain; charset=utf-8", headers={"X-Model": model})
+    return StreamingResponse(
+        generate(),
+        media_type="text/plain; charset=utf-8",
+        # no-transform stops Cloudflare from compressing (and so buffering) the stream at the edge
+        headers={"X-Model": model, "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no"},
+    )
 
 
 static = os.path.join(os.path.dirname(__file__), "static")  # web/dist, copied in by the Dockerfile
