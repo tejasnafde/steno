@@ -8,9 +8,15 @@ services:
   grafana:
     restart: unless-stopped
     environment: { GF_SERVER_ROOT_URL: "https://${PUBLIC_HOST}/admin/" }
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate --protocol http2 run  # QUIC flaps on GCE (MTU 1460); TCP is steady
-    environment: { TUNNEL_TOKEN: "${TUNNEL_TOKEN}" }
+  caddy:
+    image: caddy:2-alpine
+    ports: ["443:443"]
+    environment: { PUBLIC_HOST: "${PUBLIC_HOST}" }
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
     restart: unless-stopped
     depends_on: [chat, grafana]
+
+volumes:
+  caddy_data: {}

@@ -194,7 +194,7 @@ Postgres on first start.
 
 Local and production run the same `docker-compose.yml`; production adds
 `deploy/compose.prod.yml` for restart policies, Grafana's public root URL,
-and a `cloudflared` service. Locally, one command:
+and a Caddy origin. Locally, one command:
 
 ```sh
 docker compose up --build
@@ -204,12 +204,26 @@ Production is the same file plus the overlay, on one free-tier `e2-micro`
 GCE instance (`deploy/startup.sh` installs Docker and a 2 GB swapfile so
 the build does not OOM on a 1 GB machine). `deploy/deploy.sh` tars the
 tree to the VM over `gcloud compute ssh`, writes `.env` from a local
-`.env.prod`, and runs the compose overlay. A Cloudflare Tunnel
-(`TUNNEL_TOKEN`) exposes `chat` and `grafana` with no inbound port open.
-Grafana sits at `/admin/` behind Cloudflare Access with an email allowlist. The allowlist is editable from `/admin/access`, a page in the chat app that calls the Access API with a scoped token (`CF_ACCESS_*` in `.env.prod`); the page itself is inside the protected path, so only allowlisted users reach it, and it refuses to remove the caller's own address. Grafana sits behind Access;
-anonymous Viewer access is on in Grafana itself only because Access is
-assumed to be the real auth layer in front of it, not because the
-dashboard is public.
+`.env.prod`, and runs the compose overlay. Cloudflare proxies the hostname
+straight to a Caddy container on the VM: the GCE firewall admits port 443
+from Cloudflare's published IP ranges only, Caddy serves its own CA
+certificate (the zone runs SSL mode `full`, which accepts it), and Caddy
+routes `/admin*` to Grafana and everything else to `chat`. Grafana sits at
+`/admin/` behind Cloudflare Access with an email allowlist. The allowlist
+is editable from `/admin/access`, a page in the chat app that calls the
+Access API with a scoped token (`CF_ACCESS_*` in `.env.prod`); the page
+itself is inside the protected path, so only allowlisted users reach it,
+and it refuses to remove the caller's own address. Anonymous Viewer access
+is on in Grafana only because Access is the real auth layer in front of
+it, not because the dashboard is public.
+
+**Why not Cloudflare Tunnel**: the first deployment used one. Measured from
+India, 40 percent of requests stalled for 5 to 17 seconds on the hop between
+Cloudflare's Mumbai colo and the US colo the tunnel was registered at, while
+the same requests measured from inside the VM took 130 to 190 ms. Direct
+proxying from the same colo to the VM's IP gave 20 of 20 requests in 0.53 to
+0.87 s. A tunnel is the better security story (no inbound port), and the
+firewall rule limited to Cloudflare's ranges recovers most of it.
 
 **Why not Cloud Run**: the pipeline needs a stateful Redis stream and
 Postgres regardless of where the app code runs, so a serverless target

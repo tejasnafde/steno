@@ -32,7 +32,7 @@ open http://localhost:3000/admin/  # Grafana dashboards
 | `ingest/` | `main.py` validates a batch of events and appends to a Redis stream, returns 202. `worker.py` reads the stream with a consumer group and writes to Postgres, idempotent on `event_id`. |
 | `db/` | `schema.sql`, the only schema definition. Three tables: `conversations`, `messages`, `inference_logs`. Decisions live in its comments. |
 | `grafana/` | Provisioned datasource (reads Postgres directly) and the `Inference` dashboard. |
-| `deploy/` | Production compose overlay, VM startup script, and the deploy script for a single free-tier GCE instance behind a Cloudflare Tunnel. |
+| `deploy/` | Production compose overlay, VM startup script, and the deploy script for a single free-tier GCE instance behind Cloudflare's proxy. |
 
 ## Using the SDK in your own app
 
@@ -77,8 +77,9 @@ considerations, and failure handling assumptions.
 
 `deploy/deploy.sh` ships the working tree to a GCE VM over `gcloud compute ssh` and
 runs `docker compose -f docker-compose.yml -f deploy/compose.prod.yml up -d --build`.
-It reads a local `.env.prod` with `PUBLIC_HOST`, `TUNNEL_TOKEN`, and the
-provider API keys. `deploy/startup.sh` is the one-time VM setup (Docker plus
+It reads a local `.env.prod` with `PUBLIC_HOST`, the `CF_ACCESS_*` variables, and
+the provider API keys. Cloudflare proxies straight to Caddy on the VM (port 443 open
+to Cloudflare's IP ranges only, self-signed origin cert, zone SSL mode `full`). `deploy/startup.sh` is the one-time VM setup (Docker plus
 a swapfile) run from the GCE instance metadata.
 
 ## Dashboards

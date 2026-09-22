@@ -1,0 +1,19 @@
+# Origin for Cloudflare. The zone runs SSL mode "full", so Caddy's own CA is enough; only Cloudflare's
+# IP ranges can reach 443 (GCE firewall rule allow-cloudflare-443). Path routing mirrors what the
+# tunnel ingress used to do.
+https://{$PUBLIC_HOST} {
+  tls internal
+  encode zstd gzip
+  @adminapp path /admin/access /api/admin/*
+  handle @adminapp {
+    reverse_proxy chat:8000
+  }
+  handle /admin* {
+    reverse_proxy grafana:3000
+  }
+  handle {
+    reverse_proxy chat:8000 {
+      flush_interval -1
+    }
+  }
+}

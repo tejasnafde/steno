@@ -1,6 +1,6 @@
 #!/bin/sh
-# Ship the working tree to the VM and rebuild. Needs .env.prod locally (provider keys, TUNNEL_TOKEN, PUBLIC_HOST).
-set -e
+# Ship the working tree to the VM and rebuild. Needs .env.prod locally (provider keys, PUBLIC_HOST, CF_ACCESS_*).
+set -eo pipefail
 GC=${GC:-/opt/homebrew/share/google-cloud-sdk/bin/gcloud}
 VM=${VM:-steno}
 ZONE=${ZONE:-us-central1-a}
