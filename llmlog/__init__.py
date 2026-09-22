@@ -25,6 +25,7 @@ PROVIDERS = {
     "api.groq.com": "groq",
 }
 OPENAI_WIRE = {"openai", "groq"}
+INFERENCE_PATHS = ("generatecontent", "/messages", "/chat/completions", "/responses")
 PREVIEW_CHARS = 300
 BATCH_SIZE = 100
 FLUSH_SECONDS = 0.5
@@ -202,7 +203,7 @@ def patch(mod) -> None:
 
     async def send(self, request, **kwargs):
         provider = PROVIDERS.get(request.url.host)
-        if not provider:
+        if not provider or not any(p in request.url.path.lower() for p in INFERENCE_PATHS):
             return await original_send(self, request, **kwargs)
 
         try:

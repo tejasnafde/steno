@@ -1,0 +1,269 @@
+{
+  "uid": "inference",
+  "title": "Inference",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "timezone": "browser",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "provider",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "inference" },
+        "query": "select distinct provider from inference_logs",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total calls",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 4, "w": 5, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select count(*) as total_calls from inference_logs where $__timeFilter(started_at) and provider in ($provider)",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Error rate %",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 4, "w": 5, "x": 5, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select round(100.0 * count(*) filter (where status = 'error') / nullif(count(*), 0), 2) as error_rate_pct from inference_logs where $__timeFilter(started_at) and provider in ($provider)",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cancel rate %",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 4, "w": 5, "x": 10, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select round(100.0 * count(*) filter (where status = 'cancelled') / nullif(count(*), 0), 2) as cancel_rate_pct from inference_logs where $__timeFilter(started_at) and provider in ($provider)",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "p95 latency ms",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 4, "w": 5, "x": 15, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select percentile_cont(0.95) within group (order by latency_ms) as p95_latency_ms from inference_logs where $__timeFilter(started_at) and provider in ($provider)",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Total tokens",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)) as total_tokens from inference_logs where $__timeFilter(started_at) and provider in ($provider)",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Latency",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "p50 / p95 latency by model",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select $__timeGroupAlias(started_at, $__interval), model, percentile_cont(0.5) within group (order by latency_ms) as p50, percentile_cont(0.95) within group (order by latency_ms) as p95 from inference_logs where $__timeFilter(started_at) and provider in ($provider) group by 1, model order by 1",
+          "rawQuery": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "p50 ttft by model",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select $__timeGroupAlias(started_at, $__interval), model, percentile_cont(0.5) within group (order by ttft_ms) as p50_ttft from inference_logs where $__timeFilter(started_at) and provider in ($provider) and ttft_ms is not null group by 1, model order by 1",
+          "rawQuery": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Throughput",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Calls per interval by provider",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "stacking": { "mode": "normal", "group": "A" } }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select $__timeGroupAlias(started_at, $__interval), provider, count(*) as calls from inference_logs where $__timeFilter(started_at) and provider in ($provider) group by 1, provider order by 1",
+          "rawQuery": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Tokens per interval (input vs output)",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select $__timeGroupAlias(started_at, $__interval), sum(coalesce(input_tokens, 0)) as input_tokens, sum(coalesce(output_tokens, 0)) as output_tokens from inference_logs where $__timeFilter(started_at) and provider in ($provider) group by 1 order by 1",
+          "rawQuery": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Error count per interval by status",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select $__timeGroupAlias(started_at, $__interval), status, count(*) as count from inference_logs where $__timeFilter(started_at) and provider in ($provider) and status in ('error', 'cancelled') group by 1, status order by 1",
+          "rawQuery": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Recent non-ok calls",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select started_at, provider, model, http_status, latency_ms, left(error, 120) as error from inference_logs where $__timeFilter(started_at) and provider in ($provider) and status <> 'ok' order by started_at desc limit 20",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Recent",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Last 50 calls",
+      "datasource": { "type": "postgres", "uid": "inference" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "inference" },
+          "rawSql": "select started_at, session_id, provider, model, status, latency_ms, ttft_ms, input_tokens, output_tokens, input_preview, output_preview from inference_logs where $__timeFilter(started_at) and provider in ($provider) order by started_at desc limit 50",
+          "rawQuery": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

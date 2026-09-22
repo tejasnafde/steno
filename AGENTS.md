@@ -5,7 +5,8 @@ Small codebase, keep it that way. Read this before editing.
 ## Layout
 
 - `llmlog/` is the SDK. `instrument()` patches `AsyncClient.send` on `httpx` and `httpx2` (the anthropic SDK moved to that fork; patching one misses the other). `session(id)` tags calls through a ContextVar. Events queue in memory and flush in batches to `LLMLOG_ENDPOINT`.
-- `chat/` is the chatbot: FastAPI routes in `main.py`, one async generator per provider in `providers.py`, a single static `index.html`. It owns `conversations` and `messages`.
+- `chat/` is the chatbot API: FastAPI routes in `main.py`, one async generator per provider in `providers.py`. It owns `conversations` and `messages`. It serves `chat/static` when present; the Dockerfile builds `web/` into it.
+- `web/` is the React UI: Vite, TypeScript, Tailwind v4, shadcn (base-nova preset, so use `render`, not `asChild`). Structure: `src/lib/api.ts` (fetch layer and types), `src/hooks/use-chat.ts` (all state), `src/components/*.tsx` (one component per file), `src/components/ui` (shadcn, do not hand-edit). Dev: `npm run dev` in `web/` proxies `/api` to :8000.
 - `ingest/main.py` validates batches and appends to a Redis stream. `ingest/worker.py` consumes with a consumer group and inserts into `inference_logs`.
 - `db/schema.sql` is the only schema definition. Postgres loads it on first start. Schema decisions live in its comments.
 
@@ -20,6 +21,7 @@ docker compose exec postgres psql -U app -d app
 ## Conventions
 
 - No leading-underscore names. Module scope is the privacy boundary.
+- UI is built from shadcn components only. Check `web/src/components/ui` before writing markup; add with `npx shadcn@latest add <name>`.
 - No em dashes anywhere. No emoji in code or UI copy.
 - Comments explain a decision or a ceiling, not what the code does.
 - One flat module per concern. Do not add packages, base classes, or config layers for one use.

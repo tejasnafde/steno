@@ -41,6 +41,11 @@ class Send(BaseModel):
     model: str | None = None
 
 
+@app.get("/api/models")
+async def list_models():
+    return {p: await providers.list_models(p) for p in providers.configured()}
+
+
 @app.get("/api/conversations")
 async def list_conversations():
     return await q("select id, title, created_at, updated_at from conversations order by updated_at desc limit 100")
@@ -88,4 +93,6 @@ async def send_message(cid: uuid.UUID, body: Send):
     return StreamingResponse(generate(), media_type="text/plain; charset=utf-8")
 
 
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True))
+static = os.path.join(os.path.dirname(__file__), "static")  # web/dist, copied in by the Dockerfile
+if os.path.isdir(static):
+    app.mount("/", StaticFiles(directory=static, html=True))

@@ -53,5 +53,41 @@ PROVIDERS = {
 }
 
 
+KEY_ENV = {"google": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+NOT_CHAT = ("whisper", "tts", "guard", "orpheus", "embedding", "moderation", "dall-e", "image", "audio", "realtime", "transcribe")
+models_cache: dict[str, list[str]] = {}
+
+
+async def list_models(provider: str) -> list[str]:
+    """Model ids the configured key can use, fetched once per process."""
+    if provider in models_cache:
+        return models_cache[provider]
+    ids: list[str] = []
+    try:
+        if provider == "google":
+            from google import genai
+            c = client("google", lambda: genai.Client(api_key=os.environ["GEMINI_API_KEY"]))
+            async for m in await c.aio.models.list():
+                if "generateContent" in (m.supported_actions or []):
+                    ids.append(m.name.removeprefix("models/"))
+        elif provider == "anthropic":
+            from anthropic import AsyncAnthropic
+            ids = [m.id async for m in client("anthropic", AsyncAnthropic).models.list()]
+        else:
+            from openai import AsyncOpenAI
+            factory = lambda: AsyncOpenAI(base_url="https://api.groq.com/openai/v1" if provider == "groq" else None, api_key=os.environ[KEY_ENV[provider]])
+            ids = [m.id async for m in client(provider, factory).models.list()]
+    except Exception:
+        ids = []
+    ids = sorted(i for i in ids if not any(x in i.lower() for x in NOT_CHAT))
+    default = DEFAULT_MODEL[provider]
+    models_cache[provider] = [default] + [i for i in ids if i != default]
+    return models_cache[provider]
+
+
+def configured() -> list[str]:
+    return [p for p in PROVIDERS if os.environ.get(KEY_ENV[p])]
+
+
 def stream(provider: str, model: str | None, messages: list[dict]):
     return PROVIDERS[provider](model or DEFAULT_MODEL[provider], messages)

@@ -35,3 +35,13 @@ python -m pytest -q
 ```
 
 Agent and contributor notes: `AGENTS.md`. Architecture notes: `ARCHITECTURE.md` (pending).
+
+## Dashboards
+
+Grafana reads `inference_logs` directly (no Prometheus) at http://localhost:3000/admin/.
+The `Inference` dashboard has five rows: Overview (call count, error and cancel
+rate, p95 latency, total tokens), Latency (p50/p95 latency and ttft by model),
+Throughput (calls and tokens per interval), Errors (error/cancel counts and a
+table of recent failures), and Recent (last 50 calls with previews).
+Anonymous Viewer access is on because the deployed instance sits behind
+Cloudflare Access, which handles auth in front of it.

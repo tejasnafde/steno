@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: inference
+    uid: inference
+    type: postgres
+    url: postgres:5432
+    database: app
+    user: app
+    isDefault: true
+    secureJsonData:
+      password: app
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
