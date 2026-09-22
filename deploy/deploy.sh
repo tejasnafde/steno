@@ -11,3 +11,4 @@ cd "$(dirname "$0")/.."
 COPYFILE_DISABLE=1 tar --no-xattrs -czf - docker-compose.yml deploy db grafana | ssh 'mkdir -p app && tar xzf - -C app'
 ssh 'cat > app/.env' < .env.prod
 ssh 'sudo /home/tejas/app/deploy/steno-pull.sh'
+ssh 'cd app && sudo docker compose -f docker-compose.yml -f deploy/compose.prod.yml exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>&1 | tail -1'
