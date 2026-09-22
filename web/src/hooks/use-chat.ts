@@ -26,7 +26,9 @@ export function useChat(refreshKey: unknown) {
   const [streaming, setStreaming] = useState(false)
   const controller = useRef<AbortController | null>(null)
   const providerRef = useRef(provider)
-  providerRef.current = provider
+  useEffect(() => {
+    providerRef.current = provider
+  }, [provider])
 
   const refreshConversations = useCallback(() => api.conversations().then(setConversations), [])
 
