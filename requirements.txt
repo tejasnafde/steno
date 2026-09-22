@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+httpx
+psycopg[binary,pool]
+redis
+google-genai
+anthropic
+openai
