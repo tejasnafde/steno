@@ -1,0 +1,7 @@
+# Steno
+
+> A multi-provider LLM chat that logs every model call, with latency, tokens, and errors on Grafana dashboards.
+
+## Canonical resources
+
+- [Open Steno](https://steno.tn07.dev/)
