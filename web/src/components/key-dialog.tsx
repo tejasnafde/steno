@@ -33,7 +33,7 @@ export function KeyDialog({ onSaved }: { onSaved: () => void }) {
     >
       <DialogTrigger render={<Button variant="ghost" size="sm" aria-label="Your API keys" />}>
         <KeyRoundIcon data-icon="inline-start" />
-        Your keys
+        <span className="hidden sm:inline">Your keys</span>
       </DialogTrigger>
       {/* stopPropagation: the trigger lives inside the composer's InputGroup, whose click handler focuses the
           textarea; through the portal that would fight the dialog's focus trap. */}
@@ -68,7 +68,7 @@ export function KeyDialog({ onSaved }: { onSaved: () => void }) {
                     placeholder={PLACEHOLDER[p]}
                     value={keys[p] ?? ""}
                     onChange={(e) => setKeys({ ...keys, [p]: e.target.value })}
-                    className="font-mono text-xs"
+                    className="font-mono text-base md:text-xs"
                   />
                   {keys[p] && (
                     <InputGroupAddon align="inline-end">

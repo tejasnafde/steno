@@ -46,7 +46,7 @@ export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend
     <MessageScrollerProvider autoScroll>
       <MessageScroller className="flex-1">
         <MessageScrollerViewport className="overscroll-auto">
-          <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
+          <MessageScrollerContent className="mx-auto w-full min-w-0 max-w-3xl px-4 py-6">
             {messages.map((m, i) => {
               const live = streaming && m === last && m.role === "assistant"
               const stored = typeof m.id === "number"
@@ -84,7 +84,7 @@ export function Chat({ messages, streaming, signedIn, onPrompt, onFork, onResend
                                 <BubbleContent className="whitespace-pre-wrap">{m.content}</BubbleContent>
                               </Bubble>
                               {stored && !streaming && (
-                                <MessageFooter className="opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+                                <MessageFooter className="transition-opacity [@media(hover:hover)]:opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100">
                                   <MessageActions content={m.content} signedIn={signedIn} onSignIn={onSignIn} onEdit={() => setEditing({ id: m.id as number, text: m.content })} />
                                 </MessageFooter>
                               )}

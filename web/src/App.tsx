@@ -53,7 +53,7 @@ function ChatApp() {
         onSignIn={signIn}
         onSignOut={auth.signOut}
       />
-      <SidebarInset className="h-svh">
+      <SidebarInset className="h-svh min-w-0">
         <SiteHeader title={title} streaming={chat.streaming} />
         <Chat
           messages={chat.messages}
@@ -64,7 +64,7 @@ function ChatApp() {
           onResend={chat.resend}
           onSignIn={signIn}
         />
-        <div className="px-4 pb-4 pt-2">
+        <div className="px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
           <Composer models={chat.models} provider={chat.provider} model={chat.model} onSelect={chat.select} streaming={chat.streaming} onSend={chat.send} onStop={chat.stop} onKeysSaved={chat.loadModels} />
         </div>
       </SidebarInset>

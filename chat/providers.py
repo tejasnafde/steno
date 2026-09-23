@@ -78,7 +78,7 @@ PROVIDERS = {
 
 
 KEY_ENV = {"google": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
-NOT_CHAT = ("whisper", "tts", "guard", "orpheus", "embedding", "moderation", "dall-e", "image", "audio", "realtime", "transcribe")
+NOT_CHAT = ("deep-research", "computer-use", "antigravity", "robotics", "native-audio", "live", "whisper", "tts", "guard", "orpheus", "embedding", "moderation", "dall-e", "image", "audio", "realtime", "transcribe")
 models_cache: dict[tuple, list[str]] = {}
 BYOK = ("openai", "anthropic")  # providers a visitor may bring their own key for
 

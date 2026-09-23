@@ -5,6 +5,9 @@ import { KeyDialog } from "@/components/key-dialog"
 import { ModelPicker, type ModelPickerProps } from "@/components/model-picker"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group"
 
+// Touch keyboards: Enter adds a line and the button sends, like every mobile chat app.
+const coarse = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches
+
 type Props = ModelPickerProps & { streaming: boolean; onSend: (content: string) => void; onStop: () => void; onKeysSaved: () => void }
 
 export function Composer({ streaming, onSend, onStop, onKeysSaved, ...picker }: Props) {
@@ -30,20 +33,20 @@ export function Composer({ streaming, onSend, onStop, onKeysSaved, ...picker }: 
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+          if (e.key === "Enter" && !e.shiftKey && !coarse) {
             e.preventDefault()
             submit()
           }
         }}
-        placeholder="Ask anything. Enter sends, Shift+Enter adds a line."
+        placeholder={coarse ? "Ask anything" : "Ask anything. Enter sends, Shift+Enter adds a line."}
         aria-label="Message"
         rows={1}
-        className="max-h-48 field-sizing-content"
+        className="max-h-48 text-base field-sizing-content md:text-sm"
       />
-      <InputGroupAddon align="block-end">
+      <InputGroupAddon align="block-end" className="min-w-0">
         <ModelPicker {...picker} />
         <KeyDialog onSaved={onKeysSaved} />
-        <div className="ml-auto">
+        <div className="ml-auto shrink-0">
           {streaming ? (
             <InputGroupButton size="icon-sm" variant="destructive" onClick={onStop} aria-label="Stop generating">
               <SquareIcon />

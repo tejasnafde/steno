@@ -89,7 +89,7 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
       )}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<SidebarMenuAction aria-label="Conversation options" className="opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 data-open:opacity-100" />}
+          render={<SidebarMenuAction aria-label="Conversation options" className="[@media(hover:hover)]:opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 data-open:opacity-100" />}
         >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>

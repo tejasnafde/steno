@@ -52,12 +52,12 @@ export function ModelPicker({ models, provider, model, onSelect }: ModelPickerPr
       isItemEqualToValue={(a, b) => a.provider === b.provider && a.id === b.id}
       filter={null}
     >
-      <ComboboxTrigger render={<Button variant="ghost" size="sm" aria-label="Model" className="min-w-0 max-w-72 gap-2" />}>
-        <span className="text-xs text-muted-foreground">{LABELS[provider] ?? provider}</span>
+      <ComboboxTrigger render={<Button variant="ghost" size="sm" aria-label="Model" className="min-w-0 max-w-[55vw] gap-2 sm:max-w-72" />}>
+        <span className="hidden text-xs text-muted-foreground sm:inline">{LABELS[provider] ?? provider}</span>
         <span className="ident truncate">{model || "Choose a model"}</span>
       </ComboboxTrigger>
-      <ComboboxContent className="w-88" align="start">
-        <ComboboxInput showTrigger={false} placeholder="Search models, or type any model id" />
+      <ComboboxContent className="w-[min(22rem,calc(100vw-2rem))]" align="start">
+        <ComboboxInput showTrigger={false} placeholder="Search models, or type any model id" className="**:data-[slot=input-group-control]:text-base md:**:data-[slot=input-group-control]:text-sm" />
         <ComboboxEmpty>No model matches</ComboboxEmpty>
         <ComboboxList>
           {(group: Group) => (
