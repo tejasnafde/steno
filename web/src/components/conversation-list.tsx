@@ -10,7 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -220,8 +219,6 @@ export function ConversationList({ conversations, currentId, me, onOpen, onNew, 
               <ChevronsUpDownIcon className="text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-(--anchor-width) min-w-56">
-              <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">{me.user.email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
               {me.admin && (
                 <>
                   <DropdownMenuGroup>
