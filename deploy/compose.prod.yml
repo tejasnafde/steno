@@ -10,10 +10,12 @@ services:
     environment: { GF_SERVER_ROOT_URL: "https://${PUBLIC_HOST}/admin/" }
   caddy:
     image: caddy:2-alpine
+    command: caddy run --config /etc/caddy/conf/Caddyfile --adapter caddyfile
     ports: ["80:80", "443:443"]
     environment: { PUBLIC_HOST: "${PUBLIC_HOST}" }
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # the folder, not the file: deploy.sh replaces the file, and a single-file mount keeps the old one
+      - ./deploy:/etc/caddy/conf:ro
       - caddy_data:/data
     restart: unless-stopped
     depends_on: [chat, grafana]
