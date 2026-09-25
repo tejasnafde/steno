@@ -42,6 +42,7 @@ open http://localhost:3000/admin/  # Grafana dashboards, no login gate locally
 | `chat/` | Chatbot API (`main.py`), one streaming generator per provider (`providers.py`), identity and sessions (`auth.py`), the admin allowlist and the Caddy forward_auth check (`admin.py`), and the connection pool (`db.py`). Owns `users`, `admin_allowlist`, `conversations`, and `messages`. Serves the built `web/` UI as static files. |
 | `web/` | React UI: Vite, TypeScript, Tailwind v4, shadcn (base-nova). `src/lib/api.ts` is the fetch layer, `src/lib/firebase.ts` the Firebase Auth config, `src/hooks/use-chat.ts` holds conversation and streaming state, `src/hooks/use-auth.ts` holds sign-in state, `src/components/*` one component per file. `/admin/access` edits who may open `/admin`. |
 | `ingest/` | `main.py` validates a batch of events and appends to a Redis stream, returns 202. `worker.py` reads the stream with a consumer group and writes to Postgres, idempotent on `event_id`. |
+| `chat/visits.py` | Page loads with country, city and network, for the dashboard's Visitors row. |
 | `chat/images.py` | Generated images: GCS bucket in production (`IMAGE_BUCKET`), inline data URI locally. |
 | `db/` | `schema.sql`, the only schema definition. Five tables: `users`, `admin_allowlist`, `conversations`, `messages`, `inference_logs`. Decisions live in its comments. |
 | `grafana/` | Provisioned datasource (reads Postgres directly) and the `Inference` dashboard. |

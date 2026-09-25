@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import steno
-from . import admin, auth, providers, quota
+from . import admin, auth, providers, quota, visits
 from .auth import Viewer, viewer
 from .db import pool, q
 
@@ -27,6 +27,7 @@ async def lifespan(app):
     await pool.open()
     await admin.seed_allowlist()
     await quota.ensure_table()
+    await visits.ensure_table()
     providers.warm()
     yield
     await pool.close()
@@ -34,6 +35,12 @@ async def lifespan(app):
 
 app = FastAPI(title="chat", lifespan=lifespan)
 app.include_router(auth.router)
+
+
+@app.middleware("http")
+async def record_page_loads(request, call_next):
+    visits.track(request)
+    return await call_next(request)
 app.include_router(admin.router)
 
 

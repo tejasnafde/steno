@@ -4,6 +4,10 @@
 # waiting for the upstream beats answering 502 for that window.
 {$PUBLIC_HOST} {
 	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
 	@adminapp path /admin/access /api/admin/*
 	handle @adminapp {
 		reverse_proxy chat:8000 {

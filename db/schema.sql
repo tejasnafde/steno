@@ -41,6 +41,22 @@ create table quota_hits (
   created_at  timestamptz not null default now()
 );
 
+create table visits (
+  id          bigserial primary key,
+  at          timestamptz not null default now(),
+  path        text not null,
+  ip          text,
+  country     text,
+  city        text,
+  org         text,                              -- network owner, from ip-api.com
+  user_agent  text,
+  referer     text,
+  user_id     text,
+  email       text,
+  is_bot      boolean not null default false
+);
+create index visits_at_idx on visits (at desc);
+
 -- Observability data written only by the ingestion worker. One row per LLM HTTP call.
 -- Typed columns for everything we query or chart; jsonb for the long tail.
 create table inference_logs (

@@ -647,6 +647,229 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 23,
+      "type": "row",
+      "title": "Visitors",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "Page loads (people, not admins)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select count(*) as loads from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "Distinct visitors",
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select count(distinct coalesce(user_id, ip)) as visitors from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 26,
+      "type": "stat",
+      "title": "Distinct networks",
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select count(distinct org) as networks from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "Bot loads",
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select count(*) as bots from visits where is_bot and $__timeFilter(at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 28,
+      "type": "table",
+      "title": "Recent visits (newest first)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select at, path, country, city, org as network, coalesce(email, 'visitor ' || left(user_id, 8)) as who, left(user_agent, 80) as browser, referer, is_bot from visits where $__timeFilter(at) order by at desc limit 100",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     }
   ]
 }

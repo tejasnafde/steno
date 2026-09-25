@@ -93,6 +93,18 @@ and a visitor's own API key is the second: those requests skip the daily caps.
 Every rejection is a row in `quota_hits`, so abuse is visible on the dashboard's
 Usage row, not just refused.
 
+### Visits
+
+A middleware in `chat` records each page load of the app itself (`/`, shared
+links `/s/<token>`, and `/admin/access`), never API calls or assets, in the
+`visits` table: time, path, client IP (Caddy passes it in `X-Forwarded-For`),
+browser, referrer, and the signed-in email or anonymous id. Country, city and
+network owner come from ip-api.com, looked up once per IP off the request path.
+Bots are flagged by user agent. The dashboard's Visitors row excludes bots and
+anyone on the admin allowlist, so it counts other people. Caddy also writes a
+JSON access log to stdout for the raw record. The table is created at startup
+with `create table if not exists`, so adding it did not reset production data.
+
 ### Generated images
 
 Image models answer with bytes. In production `chat/images.py` uploads them to
