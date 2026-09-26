@@ -295,7 +295,7 @@ cheaper and no less correct.
 
 GitHub Actions builds the image on every push to `main` (Workload Identity
 Federation, no stored secrets) and pushes it to Artifact Registry with a
-cleanup policy that keeps the last three versions. On the VM a systemd timer
+cleanup policy (`deploy/registry-cleanup.json`: keep the newest three versions, delete anything older than seven days). On the VM a systemd timer
 runs `deploy/steno-pull.sh` every two minutes: it logs in to the registry with
 the VM's own service account, pulls, and `compose up -d` recreates only the
 containers whose image changed. The VM never builds: an e2-micro spent 4 to

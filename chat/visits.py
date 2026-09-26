@@ -57,15 +57,19 @@ async def locate(ip: str) -> tuple:
 
 
 async def record(request: Request) -> None:
+    # Insert first: the page's own /api/me call arrives within milliseconds and must find this row to mark it.
     ip = client_ip(request)
     agent = request.headers.get("user-agent", "")
     session = verify(request.cookies.get(SESSION_COOKIE))
-    country, city, org = await locate(ip) if ip and not ip.startswith(("10.", "172.", "192.168.", "127.")) else (None, None, None)
-    await q(
-        "insert into visits (path, ip, country, city, org, user_agent, referer, user_id, email, is_bot, datacentre) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-        request.url.path, ip, country, city, org, agent[:300], request.headers.get("referer", "")[:300] or None,
-        session.user_id if session else request.cookies.get(ANON_COOKIE), session.email if session else None, bool(BOTS.search(agent)), bool(org and DATACENTRE.search(org)),
+    row = await q(
+        "insert into visits (path, ip, user_agent, referer, user_id, email, is_bot) values (%s, %s, %s, %s, %s, %s, %s) returning id",
+        request.url.path, ip, agent[:300], request.headers.get("referer", "")[:300] or None,
+        session.user_id if session else request.cookies.get(ANON_COOKIE), session.email if session else None, bool(BOTS.search(agent)), one=True,
     )
+    if not ip or ip.startswith(("10.", "172.", "192.168.", "127.")):
+        return
+    country, city, org = await locate(ip)
+    await q("update visits set country=%s, city=%s, org=%s, datacentre=%s where id=%s", country, city, org, bool(org and DATACENTRE.search(org)), row["id"])
 
 
 async def mark_rendered(request: Request) -> None:
