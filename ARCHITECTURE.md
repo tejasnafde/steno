@@ -100,10 +100,24 @@ links `/s/<token>`, and `/admin/access`), never API calls or assets, in the
 `visits` table: time, path, client IP (Caddy passes it in `X-Forwarded-For`),
 browser, referrer, and the signed-in email or anonymous id. Country, city and
 network owner come from ip-api.com, looked up once per IP off the request path.
-Bots are flagged by user agent. The dashboard's Visitors row excludes bots and
-anyone on the admin allowlist, so it counts other people. Caddy also writes a
+Bots are flagged by user agent, and cloud or hosting networks are flagged too:
+scanners that watch new TLS certificates arrive from those with an ordinary
+browser string. The real test is `ran_js`: every render of the app calls
+`/api/me`, which marks the latest visit from that IP as rendered, and a scanner
+that only fetches the HTML never does. The dashboard's Visitors row counts only
+rendered visits by people not on the admin allowlist. Caddy also writes a
 JSON access log to stdout for the raw record. The table is created at startup
 with `create table if not exists`, so adding it did not reset production data.
+
+### Cost
+
+`chat/prices.py` holds list prices per model (USD per 1M input and output
+tokens, from each provider's pricing page), seeded into `model_prices` at
+startup. The dashboard's Cost row multiplies `inference_logs` tokens by them:
+total, the share on visitors' own keys (OpenAI and Anthropic have no server key),
+the share caused by people other than admins, and a count of calls on models with
+no price on file. Gemini and Groq run on free tiers here, so their real bill is
+zero; the row shows what the traffic would cost on a paid key.
 
 ### Generated images
 

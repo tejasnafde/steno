@@ -664,7 +664,7 @@
     {
       "id": 24,
       "type": "stat",
-      "title": "Page loads (people, not admins)",
+      "title": "People (page rendered, not admins)",
       "datasource": {
         "type": "postgres",
         "uid": "inference"
@@ -682,7 +682,7 @@
             "uid": "inference"
           },
           "rawQuery": true,
-          "rawSql": "select count(*) as loads from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "rawSql": "select count(*) as loads from visits where ran_js and not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
           "format": "table",
           "refId": "A"
         }
@@ -726,7 +726,7 @@
             "uid": "inference"
           },
           "rawQuery": true,
-          "rawSql": "select count(distinct coalesce(user_id, ip)) as visitors from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "rawSql": "select count(distinct coalesce(user_id, ip)) as visitors from visits where ran_js and not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
           "format": "table",
           "refId": "A"
         }
@@ -770,7 +770,7 @@
             "uid": "inference"
           },
           "rawQuery": true,
-          "rawSql": "select count(distinct org) as networks from visits where not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
+          "rawSql": "select count(distinct org) as networks from visits where ran_js and not is_bot and coalesce(email, '') not in (select email from admin_allowlist) and $__timeFilter(at)",
           "format": "table",
           "refId": "A"
         }
@@ -796,7 +796,7 @@
     {
       "id": 27,
       "type": "stat",
-      "title": "Bot loads",
+      "title": "Scanners and bots",
       "datasource": {
         "type": "postgres",
         "uid": "inference"
@@ -814,7 +814,7 @@
             "uid": "inference"
           },
           "rawQuery": true,
-          "rawSql": "select count(*) as bots from visits where is_bot and $__timeFilter(at)",
+          "rawSql": "select count(*) as scanners from visits where (is_bot or not ran_js) and $__timeFilter(at)",
           "format": "table",
           "refId": "A"
         }
@@ -858,7 +858,7 @@
             "uid": "inference"
           },
           "rawQuery": true,
-          "rawSql": "select at, path, country, city, org as network, coalesce(email, 'visitor ' || left(user_id, 8)) as who, left(user_agent, 80) as browser, referer, is_bot from visits where $__timeFilter(at) order by at desc limit 100",
+          "rawSql": "select at, path, country, city, org as network, coalesce(email, 'visitor ' || left(user_id, 8)) as who, case when ran_js and not is_bot then 'person' when is_bot then 'bot' when datacentre then 'scanner (cloud network)' else 'no render' end as kind, left(user_agent, 70) as browser, referer from visits where $__timeFilter(at) order by at desc limit 100",
           "format": "table",
           "refId": "A"
         }
@@ -869,6 +869,271 @@
       "fieldConfig": {
         "defaults": {},
         "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Cost (list price)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 75,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 29,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "List price, all traffic",
+      "description": "Tokens times the provider's list price. Gemini and Groq run on free tiers here, so their real bill is zero.",
+      "gridPos": {
+        "x": 0,
+        "y": 76,
+        "w": 6,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select coalesce(sum((coalesce(l.input_tokens,0) * p.input_usd + coalesce(l.output_tokens,0) * p.output_usd) / 1000000.0), 0) as usd from inference_logs l join model_prices p on p.model = l.model where $__timeFilter(l.started_at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "id": 30,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Paid by visitors' own keys",
+      "gridPos": {
+        "x": 6,
+        "y": 76,
+        "w": 6,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select coalesce(sum((coalesce(l.input_tokens,0) * p.input_usd + coalesce(l.output_tokens,0) * p.output_usd) / 1000000.0), 0) as usd from inference_logs l join model_prices p on p.model = l.model where l.provider in ('openai', 'anthropic') and $__timeFilter(l.started_at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "id": 31,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Caused by people other than admins",
+      "gridPos": {
+        "x": 12,
+        "y": 76,
+        "w": 6,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select coalesce(sum((coalesce(l.input_tokens,0) * p.input_usd + coalesce(l.output_tokens,0) * p.output_usd) / 1000000.0), 0) as usd from inference_logs l join model_prices p on p.model = l.model join conversations c on c.id = l.session_id left join users u on u.id = c.user_id where coalesce(u.email, '') not in (select email from admin_allowlist) and $__timeFilter(l.started_at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "id": 32,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Calls with no price on file",
+      "gridPos": {
+        "x": 18,
+        "y": 76,
+        "w": 6,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select count(*) as calls from inference_logs l left join model_prices p on p.model = l.model where p.model is null and $__timeFilter(l.started_at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "id": 33,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "type": "table",
+      "title": "List price by model",
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select l.provider, l.model, count(*) as calls, sum(coalesce(l.input_tokens,0)) as input_tokens, sum(coalesce(l.output_tokens,0)) as output_tokens, round(sum((coalesce(l.input_tokens,0) * p.input_usd + coalesce(l.output_tokens,0) * p.output_usd) / 1000000.0)::numeric, 5) as usd from inference_logs l join model_prices p on p.model = l.model where $__timeFilter(l.started_at) group by 1, 2 order by usd desc",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "id": 34,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "type": "table",
+      "title": "List price by user",
+      "gridPos": {
+        "x": 12,
+        "y": 82,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "inference"
+          },
+          "rawQuery": true,
+          "rawSql": "select coalesce(u.email, 'visitor ' || left(c.user_id, 8)) as \"user\", count(*) as calls, round(sum((coalesce(l.input_tokens,0) * p.input_usd + coalesce(l.output_tokens,0) * p.output_usd) / 1000000.0)::numeric, 5) as usd from inference_logs l join model_prices p on p.model = l.model join conversations c on c.id = l.session_id left join users u on u.id = c.user_id where $__timeFilter(l.started_at) group by 1 order by usd desc",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "id": 35,
+      "datasource": {
+        "type": "postgres",
+        "uid": "inference"
+      },
+      "options": {
+        "showHeader": true
       }
     }
   ]

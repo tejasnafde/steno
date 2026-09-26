@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import steno
-from . import admin, auth, providers, quota, visits
+from . import admin, auth, prices, providers, quota, visits
 from .auth import Viewer, viewer
 from .db import pool, q
 
@@ -28,6 +28,7 @@ async def lifespan(app):
     await admin.seed_allowlist()
     await quota.ensure_table()
     await visits.ensure_table()
+    await prices.ensure_table()
     providers.warm()
     yield
     await pool.close()

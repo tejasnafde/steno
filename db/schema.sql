@@ -53,9 +53,17 @@ create table visits (
   referer     text,
   user_id     text,
   email       text,
-  is_bot      boolean not null default false
+  is_bot      boolean not null default false,
+  datacentre  boolean not null default false,        -- network owner looks like a cloud or hosting provider
+  ran_js      boolean not null default false         -- the page's script called /api/me, so a browser rendered it
 );
 create index visits_at_idx on visits (at desc);
+
+create table model_prices (
+  model       text primary key,
+  input_usd   numeric not null,                      -- list price per 1M input tokens, seeded from chat/prices.py
+  output_usd  numeric not null
+);
 
 -- Observability data written only by the ingestion worker. One row per LLM HTTP call.
 -- Typed columns for everything we query or chart; jsonb for the long tail.
